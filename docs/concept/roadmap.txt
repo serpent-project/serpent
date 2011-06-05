@@ -1,0 +1,51 @@
+
+Preamble:
+I am very disappointed and happy about all the tools 
+the UO Community has created so far.
+
+Disappointed, because very many tools tend to be closed source, hard to use,
+scattered among many languages, buggy, undocumented, half finished and last
+but not least: close minded
+
+Why close minded?
+Most UO Tools focus on how to create an OSI Server with the UO Client.
+There is nothing wrong with that in the first place.
+But if you look at it after years of trying to make things easier, you will
+get to the conclusion, that there is a lot of wrong with it.
+
+The UO Protocol, Client and Graphics offer some limitations on how servers
+can be created.
+
+Goal:
+I want to create a toolset not only containing example codes how to read
+existing files, how to do a basic server, but mainly focus on how to extend
+the whole thing by initiating cross project APIs, talk about extending the
+protocol to even something completely new.
+
+The Goal is an editor which supports editing like CentrED does. But not to
+reinvent the wheel. First goal is to create a client which can edit files
+locally and understands the CED protocol to talk to a CED Server.
+Also, the goal is ultimately to create a completely python based MMORPG server
+capable of being modified to even be used for different protocols, different
+"worldstates", and so on.
+
+Projects in the Project:
+    * GLUE - the OpenGL UO Editor package should maintain following:
+        * Have a GL view to display UO stuff like the client would
+        * have a frontend which supports editing
+        Used tech: Qt4, GL, uolib
+    * UOLIB - rewrite and takeover of the uolib I already wrote for years
+        giving you basic classes for every kind of UO file, being able to
+        manipulate data as you whish
+        Used tech: python. maybe later C code to enable faster loading.
+    * a django server - for maintaining not only the editing of files, but
+        also storing all UO data in a database, enabling fast editing
+        the django server should be able to not only parse the files,
+        but also manipulate them in any manner you decide.
+        App1: Data Editing.
+        App2: Account management
+        App3: Datafile management (creating patches, monitoring the server)
+        App4: Worldfile management (objects in the server)
+    * Protocol handler - handle different protocols
+    * MMORPG Server - talk by a protocol, manipulating the gamestate, track
+        the clients, become very scriptable.

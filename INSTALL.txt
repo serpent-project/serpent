@@ -1,0 +1,6 @@
+* create a virtual environment
+* pip install -r requirements.txt
+
+pyside installer:
+
+http://developer.qt.nokia.com/wiki/Building_PySide_on_Linux

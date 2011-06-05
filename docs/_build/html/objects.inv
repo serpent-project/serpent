@@ -1,0 +1,7 @@
+# Sphinx inventory version 1
+# Project: Serpent
+# Version: 0.1
+glue mod glue/index.html
+uolib mod uolib/index.html
+concept mod concept/index.html
+uolib1 mod uolib1/index.html
