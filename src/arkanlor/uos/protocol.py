@@ -19,9 +19,8 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
 from twisted.internet.protocol import Protocol
-from uo.serialize import packet_lengths, PacketReader
 import struct  #@UnresolvedImport
-import hacks
+from arkanlor.uos.packet_io import packet_lengths
 
 class UOProtocolException(Exception):
     pass
@@ -47,8 +46,7 @@ class UOS(Protocol):
     def dataReceived(self, data):
         if not self.initialized:
             encryption = data[:4]
-            if encryption != 0xFFFFFFFF:
-                print "Encrypted Client detected."
+            print "Client connects, encryption-key: %s" % ('-'.join([hex(ord(i)) for i in encryption]))
             data = data[4:]
             self.initialized = True
         self._input += data
@@ -67,7 +65,7 @@ class UOS(Protocol):
         if self._input == '':
             return None
         cmd = ord(self._input[0])
-        l = hacks.packet_lengths[cmd]
+        l = packet_lengths[cmd]
         if l == 0xffff:
             raise UOProtocolException("Unsupported packet %s" % hex(cmd))
         if l == 0:
@@ -80,4 +78,4 @@ class UOS(Protocol):
         else:
             if len(self._input) < l: return None
             x, self._input = self._input[1:l], self._input[l:]
-        return PacketReader(cmd, x)
+        return (cmd, x)

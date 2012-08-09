@@ -16,12 +16,14 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 '''
 
+import sys
+sys.path.append("..")
 
 from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
-from uos.protocol import UOS
-from uos.server import ServedClient
+from arkanlor.uos.protocol import UOS
+from arkanlor.uos.server import ServedClient
 
 class ArkFactory(Factory):
     num_connections = None

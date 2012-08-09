@@ -1,0 +1,7 @@
+Packet unknown: 0x34 # done: getplayerblah
+Packet unknown: 0xbd # done: clientversion
+Packet unknown: 0xbf # EXTENDED WORK!
+Packet unknown: 0x9  # done: singleclick
+Packet unknown: 0x6  # done: doubleclick
+
+
