@@ -13,6 +13,11 @@ class CharControl(Engine):
     def __init__(self, controller):
         Engine.__init__(self, controller)
 
+    def sysmessage(self, message):
+        self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
+                                'serial': 0xffff,
+                                'message': message }))
+
     def on_login(self, charname):
         # make the world aware that this engine is controlling our character.
 

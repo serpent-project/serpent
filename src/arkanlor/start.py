@@ -19,6 +19,7 @@ GNU General Public License for more details.
 import sys
 sys.path.append("..")
 
+from arkanlor.console import stdio, ConsoleCommandProtocol
 from twisted.internet.task import LoopingCall
 from arkanlor.boulder.task import BoulderTask
 from twisted.internet.protocol import Factory
@@ -50,6 +51,8 @@ if __name__ == '__main__':
     endpoint = TCP4ServerEndpoint(reactor, 2597)
     factory = ArkFactory(boulder)
     endpoint.listen(factory)
+    # bind console
+    stdio.StandardIO(ConsoleCommandProtocol(factory))
     print "Arkanlor running."
     reactor.run()#@UndefinedVariable
     print "Arkanlor stopped."
