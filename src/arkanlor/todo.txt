@@ -28,4 +28,125 @@ in particular, you must not call it while the reactor is running.
 If you need to perform some sort of activity every so often, then 
 twisted.internet.task.LoopingCall allows you to do that, and the reactor will 
 call the function you pass into it, at an interval you specify 
-(though the resolution of this may not be as high as you might like). 
+(though the resolution of this may not be as high as you might like)
+
+
+
+Unicode Speech is a bitch.
+
+
+. local ascilen     = string.len(ascistr)
+    local keywords      = SpeechParseKeywords(ascistr)
+    local keywordcount  = table.getn(keywords)
+    local bEncoded      = keywordcount > 0
+    if (gNoSpeechKeyWords) then bEncoded = false keywordcount = 0 end -- pre aos pol shards ? (cloudstrive/zulu)
+    
+    local utf8arr
+    if (bEncoded and text_unicode) then
+        assert(#text_unicode == ascilen)
+        -- now we construct the utf8 string from unicode
+        utf8arr = {}
+        for i,c in ipairs(text_unicode) do UniCodeChar2UTF8Arr(utf8arr,c) end
+        ascilen = #utf8arr
+    end
+    
+    local hue           = hex2num("0x34")
+    local font          = 0 -- ignored by runuo 1
+    local msgtype       = (mode or kTextType_Normal) + (bEncoded and kTextType_Encoded or 0)
+    local packetlen     = 1+2+1+2+2+4+ (bEncoded and (2+0+ascilen+1) or (ascilen*2+2))
+    for i = 0,keywordcount-1 do packetlen = packetlen + ((math.mod(i,2) == 0) and 1 or 2) end -- calc packetlength for encoding
+    
+    local out = GetSendFIFO()
+    out:PushNetUint8(kPacket_Speech_Unicode)
+    out:PushNetUint16(packetlen)
+    out:PushNetUint8(msgtype)
+    out:PushNetUint16(hue)
+    out:PushNetUint16(font)
+    out:PushFilledString(gLanguage or "ENU", 4)
+    
+    if (bEncoded) then
+        local count = keywordcount -- should be in [0,50]
+        local hold  = BitwiseAND(BitwiseSHR(keywords[1],8),hex2num("0xf")) -- should be in [0,0xF]
+        local value = BitwiseSHL(keywordcount,4) + hold
+        out:PushNetUint16(value)
+        for i = 0,keywordcount-1 do
+            if (math.mod(i,2) == 0) then
+                out:PushNetUint8(BitwiseAND(keywords[i+1],hex2num("0xff")))
+            else
+                local hold  = BitwiseAND(BitwiseSHR(keywords[i+2] or 0,8),hex2num("0xf")) -- should be in [0,0xF]
+                local value = BitwiseSHL(keywords[i+1],4) + hold
+                out:PushNetUint16(value)
+            end
+        end
+        if (utf8arr) then
+            for k,c in ipairs(utf8arr) do out:PushNetUint8(c) end --  print(sprintf("utf8:0x%02x",c))
+        else
+            out:PushFilledString(ascistr, ascilen)  -- utf8   TODO:unicode ? hmm.. evil %)
+        end
+        out:PushNetUint8(0) -- zero terminate
+    else 
+        print("#sendchat,plain",gLanguage)
+        if (text_unicode) then
+            assert(#text_unicode == ascilen)
+            for k,v in ipairs(text_unicode) do 
+                out:PushNetUint16(v)
+            end 
+        else
+            out:PushFilledUnicodeString(ascistr, ascilen) -- unicode, 16 bit per letter
+        end
+        out:PushNetUint16(0) -- zero terminate
+    end
+    
+    out:SendPacket()
+end 
+
+
+--[[
+Packet ID: 0xAD
+Packet Name: Unicode/Ascii speech request
+
+BYTE[1] cmd
+BYTE[2] length
+BYTE[1] Type
+BYTE[2] Color
+BYTE[2] Font
+BYTE[4] Language (Null Terminated)
+· “enu“ - United States English
+· “des” - German Swiss
+· “dea” - German Austria
+· “deu” - German Germany
+· ... for a complete list see langcode.iff
+
+if (Type & 0xc0)
+· BYTE[1,5] Number of distinct Trigger words (NUMWORDS). 12 Bit number, Byte #13 = Bit 11…4 of NUMWORDS, Hi-Nibble of Byte #14 (Bit 7…4) = Bit 0…3 of NUMWORDS
+· BYTE[1,5] Index to speech.mul. 12 Bit number, Low Nibble of Byte #14 (Bits 3…0) = Bits 11..8 of Index, Byte #15 = Bits 7…0 of Index
+· UNKNOWNS = ( (NUMWORDS div 2) *3 ) + (NUMWORDS % 2) – 1. div = Integeger division, % = modulo operation, NUMWORDS >= 1. examples: UNKNOWNS(1)=0, UNKNOWNS(2)=2, UNKNOWNS(3)=3, UNKNOWNS(4)=5, UNKNOWNS(5)=6, UNKNOWNS(6)=8, UNKNOWNS(7)=9, UNKNOWNS(8)=11, UNKNOWNS(9)=12
+· BYTE[UNKNOWNS] Idea behind this is getting speech parsing load client side.
+                 Thus this contains data OSI server use for easier parsing. It’s client side hardcoded and exact details are unkown.
+· BYTE[?] Ascii Msg – Null Terminated(blockSize – (15+UNKNOWNS) )
+
+else
+· BYTE[?][2] Unicode Msg - Null Terminated (blockSize - 12)
+
+Notes
+For pre 2.0.7 clients Type is always < 0xc0. Uox based emus convert post 2.0.7 data of this packet to pre 2.0.7 data if Type >=0xc0.
+
+(different view of it)
+If Mode&0xc0 then there are keywords (from speech.mul) present.
+Keywords:
+The first 12 bits = the number of keywords present. The keywords are included right after this, each one is 12 bits also.
+The keywords are padded to the closest byte. For example, if there are 2 keywords, it will take up 5 bytes. 12bits for the number, and 12 bits for each keyword. 12+12+12=36. Which will be padded 4 bits to 40 bits or 5 bytes.
+
+The various types of text is as follows:
+0x00 - Normal
+0x01 - Broadcast/System
+0x02 - Emote
+0x06 - System/Lower Corner
+0x07 - Message/Corner With Name
+0x08 - Whisper
+0x09 - Yell
+0x0A - Spell
+0x0D - Guild Chat
+0x0E - Alliance Chat
+0x0F - Command Prompts
+]]--

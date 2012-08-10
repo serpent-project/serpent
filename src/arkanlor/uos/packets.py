@@ -43,12 +43,67 @@ class PingMessage(Packet):
     p_type = P_BOTH
     _datagram = [ ('sequence', BYTE), ]
 
+    def __unicode__(self):
+        return u'Ping Sequence %i' % (self.values.get('sequence'),)
+
 class MoveAck(Packet):
     __slots__ = Packet.__slots__
     p_id = 0x22
     p_type = P_BOTH
     _datagram = [('seq', BYTE),
                  ('notoriety', BYTE)]
+
+class GeneralInformation(Packet):
+    """    
+        Very complex all-in-one-packet.
+        Needs a subpacket system.
+        
+        called by renaissance clients:
+         - 0x5
+         - 0xb
+         - 0xf
+         
+     
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0xbf
+    p_type = P_BOTH
+    _datagram = [ ('subcmd', USHORT) ]
+
+    def unpack(self):
+        super(GeneralInformation, self).unpack()
+        subcmd = self.values.get('subcmd', None)
+        print "GIP subCommand: %s" % (hex(subcmd),)
+        return self
+
+class TalkRequest(Packet):
+    p_id = 0x03
+    p_type = P_CLIENT
+    _datagram = [
+                ('ttype', BYTE),
+                ('color', USHORT),
+                ('font', USHORT),
+                ('message', CSTRING)
+                 ]
+    def __unicode__(self):
+        return u'Talk: <%s> %s' % (hex(self.values.get('ttype')),
+                             self.values.get('message'),)
+
+class UnicodeTalkRequest(Packet):
+    p_id = 0xad
+    p_type = P_CLIENT
+    _datagram = [('ttype', BYTE),
+                 ('color', USHORT),
+                 ('font', USHORT),
+                 ('lang', FIXSTRING, 3), # 4 bytes.
+                 (0, BYTE), # terminator
+                 ('message', RAW)
+                 ]
+    # note this packet can be highly complex,
+    # the condition is ttype & 0xc0 -> message gets a 12 bit list prepended.
+    # first 12 bits: length of 12 bit list
+    # then length * 12 bits -> keywords
+    # (and +4 if number is even, to fill up the bytes)
 
 
 #### Client Sent Packets
@@ -166,6 +221,16 @@ class MoveRequest(Packet):
     _datagram = [('direction', BYTE),
                  ('seq', BYTE),
                  ('fw_prev', UINT)]
+
+
+class ClientSpy(Packet):
+    """ historical packet about client information """
+    p_id = 0xa4
+    p_type = P_CLIENT
+    _datagram = [('data', FIXSTRING, 148)]
+
+    def __unicode__(self):
+        return u"I spy %s" % (self.values.get('data'),)
 
 #### Server Sent Packets
 # these packets need to get packetwriters for the server.
@@ -397,22 +462,6 @@ class StatusBarInfo(Packet):
     #    return super(StatusBarInfo, self).unpack()
 
 
-class GeneralInformation(Packet):
-    """    
-        Very complex all-in-one-packet.
-        Needs a subpacket system.
-    """
-    __slots__ = Packet.__slots__
-    p_id = 0xbf
-    p_type = P_BOTH
-    _datagram = [ ('subcmd', USHORT) ]
-
-    def unpack(self):
-        super(GeneralInformation, self).unpack()
-        subcmd = self.values.get('subcmd', None)
-        print "GIP subCommand: %s" % (hex(subcmd),)
-        return self
-
 class GIMapChange(GeneralInformation):
     def serialize(self):
         self.begin()
@@ -420,7 +469,18 @@ class GIMapChange(GeneralInformation):
         self.w_byte(0)
         return self.finish(self._data)
 
+class SendSpeech(Packet):
+    p_id = 0x1c
+    p_type = P_SERVER
 
+    _datagram = [('serial', UINT),
+                 ('model', USHORT),
+                 ('ttype', BYTE),
+                 ('color', USHORT),
+                 ('font', USHORT),
+                 ('name', FIXSTRING, 30),
+                 ('message', CSTRING)
+                 ]
 
 
 server_parsers = {
@@ -439,6 +499,8 @@ server_parsers = {
     GeneralInformation.p_id: GeneralInformation,
     MoveRequest.p_id: MoveRequest,
     MoveAck.p_id: MoveAck, # resync!
+    TalkRequest.p_id: TalkRequest,
+    UnicodeTalkRequest.p_id: UnicodeTalkRequest,
     }
 
 client_parsers = {

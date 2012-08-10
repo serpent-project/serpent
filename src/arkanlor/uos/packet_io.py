@@ -22,6 +22,7 @@ FIXSTRING = 30
 CSTRING = 40
 UCSTRING = 41
 PSTRING = 50
+RAW = 255 # read rest of packet. write out directly.
 
 packet_lengths = [
     0x0068, 0x0005, 0x0007, 0x0000, 0x0002, 0x0005, 0x0005, 0x0007, # 0x00
@@ -81,6 +82,12 @@ class Packet(object):
         if self.p_id:
             self.p_length = packet_lengths[self.p_id]
 
+    def __repr__(self):
+        try:
+            return self.__unicode__()
+        except:
+            return self.__class__.__name__
+
     def read_data(self, length):
         if len(self._data) < length:
             raise Exception("Packet is too short")
@@ -120,6 +127,10 @@ class Packet(object):
                     self.values[key] = self.r_cstring()
                 elif t == PSTRING:
                     self.values[key] = self.r_pstring()
+                elif t == RAW:
+                    # thats tricky.
+                    # we read until nothing is left, actually
+                    self.values[key], self._data = self._data, ''
                 else:
                     if l:
                         self.values[key] = self.read_data(l)
@@ -156,6 +167,8 @@ class Packet(object):
                     self.w_cstring(d)
                 elif t == PSTRING:
                     self.w_boolean(d)
+                elif t == RAW:
+                    self.write_data(d)
                 else:
                     raise Exception('Unknown Packet in Datagram')
         return self.finish(self._data)
