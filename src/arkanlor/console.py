@@ -56,6 +56,9 @@ class ConsoleCommandProtocol(basic.LineReceiver):
         self.transport.loseConnection()
 
     def do_reload(self, *modules):
+        """ try to reload one or more python modules.
+            KNOW WHAT YOU ARE DOING!
+        """
         self.sendLine('reloading module(s) %s' % ', '.join(modules))
         for m in modules:
             try:
@@ -67,24 +70,23 @@ class ConsoleCommandProtocol(basic.LineReceiver):
         self.sendLine('reloading complete.')
 
     def do_list(self):
+        """
+            List all connected clients to the Server
+        """
         self.sendLine('Connected (%s):' % (len(self.factory.clients)))
         for addr in self.factory.clients.keys():
             self.sendLine(str(addr))
 
     def do_say(self, *message):
+        """
+            Broadcast Message to all connected Clients.
+        """
         if not message:
             self.sendLine('Usage: say something')
             return
-        message = 'CONSOLE: ' + '.join(message)'
+        message = 'CONSOLE: ' + ' '.join(message)
         for addr in self.factory.clients.keys():
             self.factory.clients[addr].signal('sysmessage', message)
-
-
-    def __checkSuccess(self, pageData):
-        self.sendLine("Success: got %i bytes." % len(pageData))
-
-    def __checkFailure(self, failure):
-        self.sendLine("Failure: " + failure.getErrorMessage())
 
     def connectionLost(self, reason):
         # stop the reactor, only because this is meant to be run in Stdio.
