@@ -5,10 +5,10 @@ from arkanlor.engines.login import Login
 from arkanlor.engines.ping import Ping
 
 class ServedClient:
-    def __init__(self, protocol): #
+    def __init__(self, protocol, world=None): #
         protocol.handler = self._handle_packet
-
-        self._client = protocol
+        self._world = world
+        self._protocol = protocol
         self._engines = []
         Ping(self)
         LogEngine(self)
@@ -39,4 +39,4 @@ class ServedClient:
         if not isinstance(data, basestring):
             print "> %s" % data
             data = data.serialize()
-        self._client.send(data)
+        self._protocol.send(data)

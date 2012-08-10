@@ -15,10 +15,12 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 '''
-
+#
 import sys
 sys.path.append("..")
 
+from twisted.internet.task import LoopingCall
+from arkanlor.boulder.task import BoulderTask
 from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
@@ -27,19 +29,27 @@ from arkanlor.uos.server import ServedClient
 
 class ArkFactory(Factory):
     num_connections = None
-    def __init__(self, *args, **kwargs):
+    def __init__(self, world, *args, **kwargs):
         self.num_connections = 0
+        self.world = world
         self.clients = {}
 
     def buildProtocol(self, addr):
         protocol = UOS(self)
-        client = ServedClient(protocol)
+        client = ServedClient(protocol, self.world)
         self.clients[addr] = client
         return protocol
 
 if __name__ == '__main__':
+    # build our world.
+    boulder = BoulderTask(reactor)
+    # run our boulder server.
+    lc = LoopingCall(boulder.run)
+    lc.start(0.1)
+    # run our network server.
     endpoint = TCP4ServerEndpoint(reactor, 2597)
-    endpoint.listen(ArkFactory())
+    factory = ArkFactory(boulder)
+    endpoint.listen(factory)
     print "Arkanlor running."
     reactor.run()#@UndefinedVariable
     print "Arkanlor stopped."

@@ -7,6 +7,7 @@
     @see packet_io
 """
 from arkanlor.uos.packet_io import *
+from bzrlib.smart.vfs import MoveRequest
 P_CLIENT, P_SERVER, P_BOTH, P_EXP = 0, 1, 2, 3
 
 
@@ -38,9 +39,18 @@ class LoginComplete(Packet):
         return "Login Complete"
 
 class PingMessage(Packet):
+    __slots__ = Packet.__slots__
     p_id = 0x73
     p_type = P_BOTH
     _datagram = [ ('sequence', BYTE), ]
+
+class MoveAck(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x22
+    p_type = P_BOTH
+    _datagram = [('seq', BYTE),
+                 ('notoriety', BYTE)]
+
 
 #### Client Sent Packets
 # these packets need packet parsing classes for the server.
@@ -86,18 +96,35 @@ class LoginCharacter(Packet):
     p_id = 0x5d
     #p_length = 73
     p_type = P_CLIENT
-    _datagram = [ ('pattern1', UINT),
-                  ('charname', FIXSTRING, 30),
+    _datagram = [ ('pattern1', UINT), # 0xedededed
+                  ('name', FIXSTRING, 30),
                   (0, USHORT),
                   ('client_flag', UINT),
-                  (1, UINT),
-                  ('login_count', UINT),
-                  (2, FIXSTRING, 16),
+
+                  # This is how Iris sees things. (The next 24 bytes)
+                  # it shifts everything out of order by 1 byte.
+                  (1, BYTE),
+                  (2, BYTE),
+                  (3, BYTE),
+                  (4, UINT),
+                  (5, UINT),
+                  (6, UINT),
+                  (7, UINT),
+                  (8, UINT),
+                  (9, BYTE),
+
+                  # pol description states:
+                  #(1, UINT),
+                  #('login_count', UINT),
+                  #(2, FIXSTRING, 16), # actually its 16 bytes
+
                   ('slot', UINT),
-                  ('client_ip', IPV4) ]
+                  ('client_ip', IPV4), ]
 
     def __unicode__(self):
-        return u"Character Login"
+        return u"Character Login name %s, slot %s, from %s" % (self.values.get('name'),
+                                                                  self.values.get('slot'),
+                                                                  self.values.get('client_ip'))
         #return u"Character %s logging in from %s (%s)" % (self.charname, self.client_ip, self.client_flag)
 
 class GetPlayerStatus(Packet):
@@ -133,8 +160,32 @@ class DoubleClick(Packet):
     def __unicode__(self):
         return u'DoubleClicked %s' % (self.values.get('serial', None))
 
+class MoveRequest(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x02
+    p_type = P_CLIENT
+    _datagram = [('direction', BYTE),
+                 ('seq', BYTE),
+                 ('fw_prev', UINT)]
+
 #### Server Sent Packets
 # these packets need to get packetwriters for the server.
+
+class Features(Packet):
+    """
+        http://docs.polserver.com/packets/index.php?Packet=0xb9
+        Examples: 
+            ML: B980FB 
+            AOS-7AV: B9803B 
+            AOS: B9801B 
+            LBR: B90003
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0xb9
+    p_type = P_SERVER
+    _datagram = [('bitflag', USHORT), ]
+
+
 
 class LoginConfirm(Packet):
     """
@@ -147,16 +198,58 @@ class LoginConfirm(Packet):
             ('serial', UINT),
             (0, UINT),
             ('body', USHORT),
-            ('x', USHORT), ('y', USHORT), ('z', USHORT),
+            ('x', USHORT), ('y', USHORT), ('z', BYTE),
+            ('z_high', BYTE),
             ('direction', BYTE),
-            (1, UINT),
+            (1, USHORT),
             (2, UINT),
-            (3, BYTE),
-            ('map_width', USHORT),
-            ('map_height', USHORT),
-            (4, USHORT),
-            (5, UINT)
+            (3, UINT),
+            ('flag', BYTE),
+            ('notoriety', BYTE),
+            (4, UINT),
+            (5, USHORT),
+            (6, BYTE),
+            # again iris has some own ideas here and shifts bytes
+            # i guess they just filled the gaps
+            #('map_width', USHORT),
+            #('map_height', USHORT),
+            #(4, USHORT),
+            #(5, UINT)
             ]
+
+class UpdatePlayer(Packet):
+    """
+        http://docs.polserver.com/packets/index.php?Packet=0x77
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0x77
+    p_type = P_SERVER
+    _datagram = [
+            ('serial', UINT),
+            ('body', USHORT),
+            ('x', USHORT), ('y', USHORT), ('z', BYTE),
+            ('direction', BYTE),
+            ('color', USHORT),
+            ('flag', BYTE),
+            ('highlight', BYTE)
+            ]
+
+class Teleport(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x20
+    p_type = P_SERVER
+    _datagram = [
+            ('serial', UINT),
+            ('body', USHORT),
+            (0, BYTE),
+            ('color', USHORT),
+            ('flag', BYTE),
+            ('x', USHORT), ('y', USHORT),
+            (1, USHORT),
+            ('direction', BYTE),
+            ('z', BYTE),
+            ]
+
 
 class ServerList(Packet):
     __slots__ = Packet.__slots__
@@ -305,6 +398,30 @@ class StatusBarInfo(Packet):
     #    return super(StatusBarInfo, self).unpack()
 
 
+class GeneralInformation(Packet):
+    """    
+        Very complex all-in-one-packet.
+        Needs a subpacket system.
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0xbf
+    p_type = P_BOTH
+    _datagram = [ ('subcmd', USHORT) ]
+
+    def unpack(self):
+        super(GeneralInformation, self).unpack()
+        subcmd = self.values.get('subcmd', None)
+        print "GIP subCommand: %s" % (hex(subcmd),)
+        return self
+
+class GIMapChange(GeneralInformation):
+    def serialize(self):
+        self.begin()
+        self.w_ushort(0x08)
+        self.w_byte(0)
+        return self.finish(self._data)
+
+
 
 
 server_parsers = {
@@ -320,6 +437,9 @@ server_parsers = {
     ClientVersion.p_id: ClientVersion,
     SingleClick.p_id: SingleClick,
     DoubleClick.p_id: DoubleClick,
+    GeneralInformation.p_id: GeneralInformation,
+    MoveRequest.p_id: MoveRequest,
+    MoveAck.p_id: MoveAck, # resync!
     }
 
 client_parsers = {

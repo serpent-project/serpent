@@ -1,5 +1,5 @@
 # A simple logging engine
-from gemuo.engine import Engine
+from arkanlor.uos.engine import Engine
 from arkanlor.uos import packets as p
 
 class LogEngine(Engine):

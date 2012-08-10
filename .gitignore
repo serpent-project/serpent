@@ -1,0 +1,22 @@
+# system files
+*.pyc
+.DS_Store
+
+# sqlite db files
+*.db
+
+# temp files (i.e. cate)
+*.*~
+*.tmp
+
+# media files
+src/concept/tex/
+
+# local modifications
+*_local.py
+
+# eclipse files
+.project
+.pydevproject
+.idea
+
