@@ -62,7 +62,7 @@ class CharControl(Engine):
                           'flag': 0x0, }
                                  ))
             # Send our motd.
-            self.send(p.SendSpeech({'ttype': const.TTYPE_SYSTEM,
+            self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
                                 'serial': 0xffff,
                                 'message': MOTD }))
         elif isinstance(packet, p.TalkRequest) or isinstance(packet, p.UnicodeTalkRequest):
