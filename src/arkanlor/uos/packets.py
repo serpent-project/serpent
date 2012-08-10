@@ -7,7 +7,6 @@
     @see packet_io
 """
 from arkanlor.uos.packet_io import *
-from bzrlib.smart.vfs import MoveRequest
 P_CLIENT, P_SERVER, P_BOTH, P_EXP = 0, 1, 2, 3
 
 
