@@ -6,8 +6,7 @@
 from arkanlor.uos.engine import Engine#@UnresolvedImport
 from arkanlor.uos import packets as p
 from arkanlor.uos import const
-
-MOTD = 'You logged in. Arkanlor V%s' % ('0.1',)
+from arkanlor import settings
 
 class CharControl(Engine):
     def __init__(self, controller):
@@ -69,7 +68,7 @@ class CharControl(Engine):
             # Send our motd.
             self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
                                 'serial': 0xffff,
-                                'message': MOTD }))
+                                'message': settings.VERSIONSTRING }))
         elif isinstance(packet, p.TalkRequest) or isinstance(packet, p.UnicodeTalkRequest):
             self.send(p.SendSpeech({'name': self.mobile.name,
                                     'ttype': packet.values['ttype'],

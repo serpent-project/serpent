@@ -27,6 +27,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 from arkanlor.uos.protocol import UOS
 from arkanlor.uos.server import ServedClient
+from arkanlor import settings
 
 class ArkFactory(Factory):
     num_connections = None
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     lc = LoopingCall(boulder.run)
     lc.start(0.1)
     # run our network server.
-    endpoint = TCP4ServerEndpoint(reactor, 2597)
+    endpoint = TCP4ServerEndpoint(reactor, settings.UOS_PORT)
     factory = ArkFactory(boulder)
     endpoint.listen(factory)
     # bind console

@@ -63,6 +63,13 @@ class Mobile(WorldObject):
         self.y = y or 0
         self.z = z or 0
 
+class Account(object):
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password or ''
+
+
+
 class BoulderState(object):
     def __init__(self, name):
         self.name = name
@@ -97,6 +104,7 @@ class BoulderState(object):
         self.serials[mobile.serial] = mobile
         self.mobiles += [mobile]
         return mobile
+
 
 
 

@@ -3,3 +3,4 @@ pyopengl
 sphinx
 #twisted
 #-e git+git://github.com/cculianu/gemuo.git
+Django
