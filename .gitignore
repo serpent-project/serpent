@@ -11,6 +11,7 @@
 
 # media files
 src/concept/tex/
+src/mudpie/
 
 # local modifications
 *_local.py

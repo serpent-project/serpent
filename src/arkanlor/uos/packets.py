@@ -470,6 +470,7 @@ class GIMapChange(GeneralInformation):
         return self.finish(self._data)
 
 class SendSpeech(Packet):
+    __slots__ = Packet.__slots__
     p_id = 0x1c
     p_type = P_SERVER
 
@@ -481,6 +482,66 @@ class SendSpeech(Packet):
                  ('name', FIXSTRING, 30),
                  ('message', CSTRING)
                  ]
+
+class Follow(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x15
+    p_type = P_BOTH
+
+    _datagram = [('target', UINT), # to follow
+                 ('serial', UINT)] # is following
+
+class ResurrectionMenu(Packet):
+    """
+        action: 0 server, 1 resurrect, 2 ghost
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0x2c
+    p_type = P_BOTH
+
+    _datagram = [('action', BYTE)]
+
+class RemoveGroup(Packet):
+    """
+        @deprecated: unneccessary.
+        target = serial -> Removed from Group.
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0x39
+    p_type = P_BOTH
+
+    _datagram = [('serial', UINT),
+                 ('target', UINT)]
+
+class SendSkills(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x1c
+    p_type = P_SERVER
+
+    _datagram = [('type', BYTE)]
+
+    def unpack(self):
+        self.read_datagram(self._datagram)
+        _skill_datagram = [('id', USHORT),
+                           ('value', USHORT),
+                           ('rawvalue', USHORT),
+                           ('lock', BYTE)]
+        if self.values['type'] in [0x02, 0xDF]:
+            _skill_datagram += [('cap', USHORT)]
+        self.values['skills'] = {}
+        while len(self._data) > 2:
+            skill = {}
+            self.read_datagram(_skill_datagram, skill)
+            self.values['skills'][skill['id']] = skill
+        # skip the terminator.
+        return self
+
+    def serialize(self):
+        self.begin()
+
+        self.write_datagram(self._datagram)
+
+        return self.finish()
 
 
 server_parsers = {

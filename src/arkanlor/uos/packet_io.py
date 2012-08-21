@@ -105,79 +105,95 @@ class Packet(object):
             self.values[key] = kwargs[key]
         return self
 
+    def read_datagram(self, datagram, values=None):
+        if values is None:
+            values = self.values
+        for item in datagram:
+            l, key, t, item = None, item[0], item[1], item[2:]
+            if item: # optional argument length
+                l = item[0]
+            if not t:
+                values[key] = self.r_boolean()
+            elif t == BYTE:
+                values[key] = self.r_byte()
+            elif t == USHORT:
+                values[key] = self.r_ushort()
+            elif t == UINT:
+                values[key] = self.r_uint()
+            elif t == IPV4:
+                values[key] = self.r_ipv4()
+            elif t == FIXSTRING:
+                values[key] = self.r_fixstring(l)
+            elif t == CSTRING:
+                values[key] = self.r_cstring()
+            elif t == PSTRING:
+                values[key] = self.r_pstring()
+            elif t == RAW:
+                # thats tricky.
+                # we read until nothing is left, actually
+                values[key], self._data = self._data, ''
+            else:
+                if l:
+                    values[key] = self.read_data(l)
+                else:
+                    raise Exception('Unknown Packet in Datagram')
+
+    def write_datagram(self, datagram, values=None):
+        if values is None:
+            values = self.values
+        for item in datagram:
+            _d, l, key, t, item = None, None, item[0], item[1], item[2:]
+            if item: # optional argument length
+                l, item = item[0], item[1:]
+            if item:
+                _d = item[0]
+            d = values.get(key, None)
+            if d is None:
+                if _d:
+                    d = _d
+                elif t < FIXSTRING:
+                    d = 0
+                else:
+                    d = ''
+            if not t:
+                self.w_boolean(d)
+            elif t == BYTE:
+                self.w_byte(d)
+            elif t == USHORT:
+                self.w_ushort(d)
+            elif t == UINT:
+                self.w_uint(d)
+            elif t == IPV4:
+                self.w_ipv4(d)
+            elif t == FIXSTRING:
+                self.w_fixstring(d, l)
+            elif t == CSTRING:
+                self.w_cstring(d)
+            elif t == PSTRING:
+                self.w_boolean(d)
+            elif t == RAW:
+                self.write_data(d)
+            else:
+                raise Exception('Unknown Packet in Datagram')
+
     def unpack(self):
         if self._datagram:
-            for item in self._datagram:
-                l, key, t, item = None, item[0], item[1], item[2:]
-                if item: # optional argument length
-                    l = item[0]
-                if not t:
-                    self.values[key] = self.r_boolean()
-                elif t == BYTE:
-                    self.values[key] = self.r_byte()
-                elif t == USHORT:
-                    self.values[key] = self.r_ushort()
-                elif t == UINT:
-                    self.values[key] = self.r_uint()
-                elif t == IPV4:
-                    self.values[key] = self.r_ipv4()
-                elif t == FIXSTRING:
-                    self.values[key] = self.r_fixstring(l)
-                elif t == CSTRING:
-                    self.values[key] = self.r_cstring()
-                elif t == PSTRING:
-                    self.values[key] = self.r_pstring()
-                elif t == RAW:
-                    # thats tricky.
-                    # we read until nothing is left, actually
-                    self.values[key], self._data = self._data, ''
-                else:
-                    if l:
-                        self.values[key] = self.read_data(l)
-                    else:
-                        raise Exception('Unknown Packet in Datagram')
+            self.read_datagram(self._datagram)
         return self
 
     def serialize(self):
         self.begin()
         if self._datagram:
-            for item in self._datagram:
-                l, key, t, item = None, item[0], item[1], item[2:]
-                if item: # optional argument length
-                    l = item[0]
-                d = self.values.get(key, None)
-                if d is None:
-                    if t < FIXSTRING:
-                        d = 0
-                    else:
-                        d = ''
-                if not t:
-                    self.w_boolean(d)
-                elif t == BYTE:
-                    self.w_byte(d)
-                elif t == USHORT:
-                    self.w_ushort(d)
-                elif t == UINT:
-                    self.w_uint(d)
-                elif t == IPV4:
-                    self.w_ipv4(d)
-                elif t == FIXSTRING:
-                    self.w_fixstring(d, l)
-                elif t == CSTRING:
-                    self.w_cstring(d)
-                elif t == PSTRING:
-                    self.w_boolean(d)
-                elif t == RAW:
-                    self.write_data(d)
-                else:
-                    raise Exception('Unknown Packet in Datagram')
+            self.write_datagram(self._datagram)
         return self.finish(self._data)
 
     def begin(self):
         self._data = ''
         self.w_byte(self.p_id)
 
-    def finish(self, data):
+    def finish(self, data=None):
+        if data is None:
+            data = self._data
         if self.p_length == 0:
             if len(data) > 0xf000:
                 raise Exception, "Packet too large"
