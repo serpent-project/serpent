@@ -4,8 +4,10 @@
     Donjon Port to Python
     
     @author drow http://donjon.bin.sh/
-    @author g4b
+    @author g4b (python port and modifications)
 """
+# note: r=y=i=height, c=x=j=width
+# while translating to python, i chose to use x/y and w/h only mostly
 import numpy
 
 #control
@@ -29,6 +31,16 @@ MAP_STYLE = {
         'open_grid': 0xCCCCCC,
     }
     }
+
+WEST = 'west'
+NORTH = 'north'
+EAST = 'east'
+SOUTH = 'south'
+DOORY = { NORTH:-1, SOUTH: 1,
+          WEST: 0, EAST:  0 }
+DOORX = { NORTH:  0, SOUTH:  0,
+          WEST:-1, EAST:  1 }
+
 
 # cell bitmask
 NOTHING = 0x00000000
@@ -60,6 +72,7 @@ BLOCK_ROOM = BLOCKED | ROOM
 BLOCK_CORR = BLOCKED | PERIMETER | CORRIDOR
 BLOCK_DOOR = BLOCKED | DOORSPACE
 
+
 def seeded(something):
     if isinstance(something, basestring):
         return [ord(i) for i in something]
@@ -75,6 +88,7 @@ class Dungeon(object):
                  max_rooms=9,
                  **opts
                  ):
+        self.connect = None
         self.seed = seeded(seed)
         self.cx = int(width / 2)
         self.cy = int(height / 2)
@@ -90,11 +104,9 @@ class Dungeon(object):
             'map_style': 'default',
             'dungeon_layout': '',
                      }
-        print opts
         for k, v in opts.items():
             default_opts[k] = v
         self.opts = default_opts
-        print self.opts
         self.rooms = rooms or {}
         self.num_rooms = len(self.rooms)
         self.room_base = int((min_rooms + 1) / 2)
@@ -112,19 +124,22 @@ class Dungeon(object):
                 if c & BLOCKED:
                     ch = '.'
                 if c & ROOM:
-                    ch = 'o'
+                    ch = '·'
                 if c & CORRIDOR:
                     ch = '='
                 if c & PERIMETER:
-                    ch = '|'
+                    ch = '+'
                 if c & ENTRANCE:
                     ch = 'A'
+                if c & DOOR:
+                    ch = 'D'
                 line += ch
             output += [line]
         for line in output:
             print line
 
     def init_cells(self):
+        """ initialize the dungeon buffer """
         self.cells = numpy.zeros((self.width, self.height), dtype=int)
         for x in xrange(self.width):
             for y in xrange(self.height):
@@ -133,12 +148,14 @@ class Dungeon(object):
         self.setup_layout_mask(self.opts.get('dungeon_layout'))
 
     def setup_layout_mask(self, layout=None):
+        """ setup the mask of the dungeon by layout """
         if layout in DUNGEON_LAYOUTS.keys():
             self.mask_cells(DUNGEON_LAYOUTS[layout])
         elif layout == 'round':
             self.mask_round()
 
     def mask_cells(self, mask, maskbit=BLOCKED):
+        """ mark cells by a mask, (2 dim array) """
         mask = numpy.array(mask)
         mx = len(mask) * 1.0 / self.width
         my = len(mask[0]) * 1.0 / self.height
@@ -148,6 +165,7 @@ class Dungeon(object):
                     self.cells[x, y] |= maskbit
 
     def mask_round(self, maskbit=BLOCKED):
+        """ mark cells by a circled mask """
         for x in xrange(self.width):
             for y in xrange(self.height):
                 d = numpy.sqrt(((x - self.cx) ** 2) + ((y - self.cy) ** 2))
@@ -155,12 +173,14 @@ class Dungeon(object):
                     self.cells[x, y] |= maskbit
 
     def emplace_rooms(self):
+        """ places the rooms according to rules """
         if self.opts.get('room_layout', 'scattered') == 'packed':
             self.pack_rooms()
         else:
             self.scatter_rooms()
 
     def set_room(self, proto=None):
+        """ create a random rectangular room and ensure position and dimensions """
         proto = proto or {}
         if not proto.get('width', None):
             if proto.get('x', None):
@@ -187,18 +207,22 @@ class Dungeon(object):
         return proto
 
     def sound_room(self, x1, y1, x2, y2):
+        """ returns a dictionary containing all rooms a rectangle hits """
         hit = {}
         for x in range(x1, x2):
             for y in range(y1, y2):
                 if self.cells[x, y] & BLOCKED:
                     return None
                 elif self.cells[x, y] & ROOM:
-                    id = self.cells[x, y] & ROOM_ID >> 6
-                    hit[id] = hit.get(id, 0) + 1
+                    id_ = self.cells[x, y] & ROOM_ID >> 6
+                    hit[id_] = hit.get(id_, 0) + 1
         return hit
 
 
     def emplace_room(self, proto=None):
+        """ emplace a room, if no proto given, define a new one
+            ensures boundary check and creates a perimeter.
+        """
         if self.num_rooms >= MAX_ROOMS:
             return
         proto = self.set_room(proto)
@@ -242,24 +266,24 @@ class Dungeon(object):
         for x in range(x1 - 1, x2 + 1):
             try:
                 if not (self.cells[x, y1 - 1] & (ROOM | ENTRANCE)):
-                    self.cells[x, y1 - 1] &= PERIMETER
+                    self.cells[x, y1 - 1] |= PERIMETER
             except IndexError:
                 pass
             try:
-                if not (self.cells[x, y2 + 1] & (ROOM | ENTRANCE)):
-                    self.cells[x, y2 + 1] &= PERIMETER
+                if not (self.cells[x, y2] & (ROOM | ENTRANCE)):
+                    self.cells[x, y2] |= PERIMETER
             except IndexError:
                 pass
 
         for y in range(y1 - 1, y2 + 1):
             try:
                 if not (self.cells[x1 - 1, y] & (ROOM | ENTRANCE)):
-                    self.cells[x1 - 1, y] &= PERIMETER
+                    self.cells[x1 - 1, y] |= PERIMETER
             except IndexError:
                 pass
             try:
-                if not (self.cells[x2 + 1, y] & (ROOM | ENTRANCE)):
-                    self.cells[x2 + 1, y] &= PERIMETER
+                if not (self.cells[x2, y] & (ROOM | ENTRANCE)):
+                    self.cells[x2, y] |= PERIMETER
             except IndexError:
                 pass
 
@@ -286,11 +310,117 @@ class Dungeon(object):
             self.emplace_room()
 
     def open_rooms(self):
-        pass
+        for i in range(1, self.num_rooms):
+            self.open_room(self.rooms[i])
+        self.connect = None
+
+    def check_sill(self, room, x, y, dir):
+        """
+            check a doorsill for correctness and prepare a door.
+            returns none if door is not placeable
+            returns {x,y,dir,door_x,door_y,out_id} if it is
+        """
+        door_x = x + DOORX[dir]
+        door_y = y + DOORY[dir]
+        # if door is not in a perimeter or block_door, return
+        if not self.cells[door_x, door_y] & PERIMETER:
+            return
+        elif self.cells[door_x, door_y] & BLOCK_DOOR:
+            return
+        out_x = door_x + DOORX[dir]
+        out_y = door_y + DOORY[dir]
+        # block check
+        if self.cells[out_x, out_y] & BLOCKED:
+            return
+        out_id = None
+        if self.cells[out_x, out_y] & ROOM:
+            # save the id of our door's room.
+            out_id = self.cells[out_x, out_y] & ROOM_ID >> 6
+            if out_id == room['id']:
+                # room into itself should not exist.
+                return
+        return {
+            'x' : x,
+            'y': y,
+            'dir': dir,
+            'door_x': door_x,
+            'door_y': door_y,
+            'out_id': out_id
+            }
+
+
+    def door_sills(self, room):
+        """ along the perimeter of the room, check for doorsills,
+            return a list of possible doorsills
+        """
+        l = []
+        if (room[NORTH] >= 3):
+            for x in range(room[WEST], room[EAST] + 1, 2):
+                proto = self.check_sill(room, x, room[NORTH], NORTH)
+                if proto:
+                    l += [proto]
+        if (room[SOUTH] <= self.height - 3):
+            for x in range(room[WEST], room[EAST] + 1, 2):
+                proto = self.check_sill(room, x, room[SOUTH], SOUTH)
+                if proto:
+                    l += [proto]
+        if (room[WEST] >= 3):
+            for y in range(room[NORTH], room[SOUTH] + 1, 2):
+                proto = self.check_sill(room, room[WEST], y, WEST)
+                if proto:
+                    l += [proto]
+        if (room[EAST] <= self.height - 3):
+            for y in range(room[NORTH], room[SOUTH] + 1, 2):
+                proto = self.check_sill(room, room[EAST], y, EAST)
+                if proto:
+                    l += [proto]
+        numpy.random.shuffle(l)
+        return l
+
+    def possible_opens(self, room):
+        room_h = ((room['south'] - room['north']) / 2) + 1
+        room_w = ((room['east'] - room['west']) / 2) + 1
+        flumph = int(numpy.sqrt(room_h * room_w))
+        return flumph + int(numpy.random.randint(0, flumph))
+
+    def door_type(self):
+        """ returns a random door type """
+        # only doors atm
+        return DOOR
+        # throw dice to get the doortype
+        i = numpy.random.randint(0, 110)
+        if i < 15:
+            return ARCH
+        elif i < 60:
+            return DOOR
+        elif i < 75:
+            return LOCKED
+        elif i < 90:
+            return TRAPPED
+        elif i < 100:
+            return SECRET
+        else:
+            return PORTC
+
+    def open_room(self, room):
+        l = self.door_sills(room)
+        if not l:
+            return
+        n_opens = self.possible_opens(room)
+        for i in xrange(n_opens):
+            sill = l[:].remove(numpy.random.randint(0, len(l)))
+            if not sill:
+                break
+        door_cell = None
+        while not door_cell or door_cell & DOORSPACE:
+            door_cell = self.cells[sill['door_x'], sill['door_y']]
+        out_id = None
+        # the next part isnt very clear. if a = b and a is None?
+
 
 
 def main():
-    dungeon = Dungeon('arkane sanctum', 100, 55,
+    dungeon = Dungeon('arkane sanctum', 50, 50,
                       min_rooms=12,
                       max_rooms=32,
                       dungeon_layout='crest',
