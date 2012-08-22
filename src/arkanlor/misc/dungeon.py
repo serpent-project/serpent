@@ -636,12 +636,33 @@ class Dungeon(object):
         return True
 
     def fix_doors(self):
-        pass
+        fixed = {}
+        for rid, room in self.rooms.items():
+            for dir in room.get('room', {}).keys():
+                shiny = []
+                for door in room['door'].get(dir, []):
+                    door_x = door['x']
+                    door_y = door['y']
+                    if not self.cells[door_x, door_y] & OPENSPACE:
+                        continue
+                    if fixed[door_x, door_y]:
+                        shiny += [door]
+                    else:
+                        if door.get('out_id', None):
+                            self.rooms[door['out_id']]['door'][OPPOSITE_DIRS[dir]] += [door]
+                        shiny += [door]
+                        fixed[door_x, door_y] = 1
+                if shiny:
+                    room['door'][dir] = shiny
+                    self.doors += shiny
+                else:
+                    del room['door'][dir]
 
     def empty_blocks(self):
-        pass
-
-
+        for x in xrange(self.width):
+            for y in xrange(self.height):
+                if self.cells[x, y] & BLOCKED:
+                    self.cells[x, y] = NOTHING
 
 
 
