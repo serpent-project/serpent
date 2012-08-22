@@ -36,6 +36,68 @@ WEST = 'west'
 NORTH = 'north'
 EAST = 'east'
 SOUTH = 'south'
+
+OPPOSITE_DIRS = {
+  NORTH: SOUTH, SOUTH: NORTH,
+  WEST: EAST, EAST: WEST
+  }
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# stairs
+
+STAIR_ENDS = {
+  NORTH: {
+    'walled' : [[1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1]],
+    'corridor' : [[0, 0], [1, 0], [2, 0]],
+    'stair' : [0, 0],
+    'next' : [1, 0],
+  },
+  SOUTH: {
+    'walled' : [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]],
+    'corridor':[[0, 0], [-1, 0], [-2, 0]],
+    'stair' :[0, 0],
+    'next' :[-1, 0],
+  },
+  WEST: {
+    'walled': [[-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1]],
+    'corridor': [[0, 0], [0, 1], [0, 2]],
+    'stair': [0, 0],
+    'next': [0, 1],
+  },
+  EAST: {
+    'walled' : [[-1, -1], [-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1]],
+    'corridor' :[[0, 0], [0, -1], [0, -2]],
+    'stair' : [0, 0],
+    'next':[0, -1],
+  },
+}
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# cleaning
+
+CLOSE_ENDS = {
+  NORTH :  {
+    'walled' :  [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1]],
+    'close' :  [[0, 0]],
+    'recurse' :  [-1, 0],
+  },
+  SOUTH:  {
+    'walled' :  [[0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]],
+    'close' :  [[0, 0]],
+    'recurse' :  [1, 0],
+  },
+  WEST:  {
+    'walled' :  [[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0]],
+    'close' :  [[0, 0]],
+    'recurse' :  [0, -1],
+  },
+  EAST:  {
+    'walled' :  [[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0]],
+    'close' :  [[0, 0]],
+    'recurse' :  [0, 1],
+  },
+}
+
 DOORY = { NORTH:-1, SOUTH: 1,
           WEST: 0, EAST:  0 }
 DOORX = { NORTH:  0, SOUTH:  0,
@@ -81,6 +143,9 @@ def seeded(something):
     else:
         return [something, ]
 
+def sort(a, b):
+    return min(a, b), max(a, b)
+
 class Dungeon(object):
     def __init__(self, seed, width, height,
                  rooms=None,
@@ -120,19 +185,19 @@ class Dungeon(object):
                 ch = '?'
                 c = self.cells[x, y]
                 if c == NOTHING:
-                    ch = '_'
+                    ch = 'o'
                 if c & BLOCKED:
-                    ch = '.'
+                    ch = 'X'
                 if c & ROOM:
-                    ch = '·'
+                    ch = '-'
                 if c & CORRIDOR:
-                    ch = '='
+                    ch = '~'
                 if c & PERIMETER:
                     ch = '+'
                 if c & ENTRANCE:
-                    ch = 'A'
-                if c & DOOR:
-                    ch = 'D'
+                    ch = '%'
+                if c & DOORSPACE:
+                    ch = 'H'
                 line += ch
             output += [line]
         for line in output:
@@ -258,7 +323,8 @@ class Dungeon(object):
             'x': x1, 'y': y1,
             'north': y1, 'south': y2, 'west': x1, 'east': x2,
             'height': height, 'width': width,
-            'area': (height * width)
+            'area': (height * width),
+            'door_treshhold': lambda x: 1, # modify this lambda to get multidoors
             }
         self.rooms[room_id] = room_data
         # block corridors from room boundary
@@ -378,8 +444,8 @@ class Dungeon(object):
         return l
 
     def possible_opens(self, room):
-        room_h = ((room['south'] - room['north']) / 2) + 1
-        room_w = ((room['east'] - room['west']) / 2) + 1
+        room_h = ((room[SOUTH] - room[NORTH]) / 2) + 1
+        room_w = ((room[EAST] - room[WEST]) / 2) + 1
         flumph = int(numpy.sqrt(room_h * room_w))
         return flumph + int(numpy.random.randint(0, flumph))
 
@@ -403,31 +469,194 @@ class Dungeon(object):
             return PORTC
 
     def open_room(self, room):
+
         l = self.door_sills(room)
         if not l:
             return
         n_opens = self.possible_opens(room)
+        self.connect = {}
         for i in xrange(n_opens):
-            sill = l[:].remove(numpy.random.randint(0, len(l)))
-            if not sill:
-                break
-        door_cell = None
-        while not door_cell or door_cell & DOORSPACE:
-            door_cell = self.cells[sill['door_x'], sill['door_y']]
-        out_id = None
-        # the next part isnt very clear. if a = b and a is None?
+            found = False
+            while not found and len(l) > 0:
+                # eliminate sills until we find a good one.
+                j = numpy.random.randint(0, len(l))
+                sill = l[j]
+                out_id = sill.get('out_id', None)
+                l.remove(sill)
+                if not sill:
+                    continue
+                door_cell = self.cells[sill['door_x'], sill['door_y']]
+                if door_cell & DOORSPACE:
+                    continue
+                if out_id:
+                    connect = ','.join(
+                            (str(min(room['id'], out_id)),
+                             str(max(room['id'], out_id))))
+                    if self.connect.has_key(connect):
+                        self.connect[connect] += 1
+                        if self.connect[connect] >= room['door_treshhold'](self.connect[connect]):
+                            continue # no more doors here.
+                    else:
+                        self.connect[connect] = 0
+                else:
+                    # do we add random doors to non out_ids?
+                    continue
+                found = True
+            for k in xrange(3):
+                x = sill['x'] + (DOORX[sill['dir']] * k)
+                y = sill['y'] + (DOORY[sill['dir']] * k)
+                self.cells[x, y] &= ~PERIMETER
+                self.cells[x, y] |= ENTRANCE
+            door = {'x': sill['x'],
+                    'y': sill['y'],
+                    'key': 'door',
+                    'out_id': out_id,
+                    }
+            self.cells[door['x'], door['y']] |= self.door_type()
+
+    def corridors(self):
+        for i in range(1, self.cx):
+            x = (i * 2) + 1
+            for j in range(1, self.cy):
+                y = (j * 2) + 1
+                if self.cells[x, y] & CORRIDOR:
+                    continue
+                self.tunnel(i, j)
+
+    def tunnel(self, i, j, last_dir=None):
+        dirs = self.tunnel_dirs(last_dir)
+        for dir in dirs:
+            if (self.open_tunnel(i, j, dir)):
+                next_i = i + DOORX[dir]
+                next_j = j + DOORY[dir]
+                self.tunnel(next_i, next_j, dir)
+
+    def tunnel_dirs(self, last_dir=None):
+        p = CORRIDOR_LAYOUTS[self.opts.get('corridor_layout', 'straight')]
+        dirs = DOORX.keys()
+        numpy.random.shuffle(dirs)
+
+        if last_dir and p:
+            if numpy.random.randint(100) < p:
+                dirs = [last_dir] + dirs
+        return dirs
+
+    def open_tunnel(self, i, j, dir):
+        x = (i * 2) + 1
+        y = (j * 2) + 1
+        next_x = ((i + DOORX[dir]) * 2) + 1
+        next_y = ((j + DOORY[dir]) * 2) + 1
+        mid_x = (x + next_x) / 2
+        mid_y = (y + next_y) / 2
+        if self.sound_tunnel(mid_x, mid_y, next_x, next_y):
+            return self.delve_tunnel(x, y, next_x, next_y)
+        else:
+            return False
+
+    def sound_tunnel(self, mid_x, mid_y, next_x, next_y):
+        if next_x < 0 or next_x > self.width or next_y < 0 or next_y > self.height:
+            return False
+        x1, x2 = sort(mid_x, next_x)
+        y1, y2 = sort(mid_y, next_y)
+        for x in range(x1, x2 + 1):
+            for y in range(y1, y2 + 1):
+                if self.cells[x, y] & BLOCK_CORR:
+                    return False
+        return True
+
+    def delve_tunnel(self, x, y, next_x, next_y):
+        x1, x2 = sort(x, next_x)
+        y1, y2 = sort(y, next_y)
+        for x in range(x1, x2 + 1):
+            for y in range(y1, y2 + 1):
+                self.cells[x, y] &= ~ENTRANCE
+                self.cells[x, y] |= CORRIDOR
+        return True
+
+    def clean_dungeon(self):
+        if self.opts.get('remove_deadends', False):
+            self.remove_deadends()
+        self.fix_doors()
+        self.empty_blocks()
+
+    def remove_deadends(self):
+        return self.collapse_tunnels(self.opts['remove_deadends'],
+                                     CLOSE_ENDS)
+
+    def collapse_tunnels(self, p, xc):
+        if not p:
+            return
+        for i in xrange(self.cx):
+            x = (i * 2) + 1
+            for j in xrange(self.cy):
+                y = (j * 2) + 1
+                if not self.cells[x, y] & OPENSPACE:
+                    continue
+                if self.cells[x, y] & STAIRS:
+                    continue
+                if not (p == 100 or int(numpy.random.randint(0, 100) < p)):
+                    continue
+                self.collapse(x, y, xc)
+
+    def collapse(self, x, y, xc):
+        try:
+            if not self.cells[x, y] & OPENSPACE:
+                return
+        except IndexError:
+            return
+
+        for dir in xc.keys():
+            if self.check_tunnel(x, y, xc[dir]):
+                for p in xc[dir].get('close', []):
+                    self.cells[x + p[1], y + p[0]] = NOTHING
+                p = xc[dir].get('open', None)
+                if p:
+                    self.cells[x + p[1], y + p[0]] |= CORRIDOR
+                p = xc[dir].get('recurse', None)
+                if p:
+                    self.collapse(x + p[1], y + p[0], xc)
+
+    def check_tunnel(self, x, y, check):
+        l = check.get('corridor', None)
+        if l:
+            for p in l:
+                try:
+                    if self.cells[x + p[1], y + p[0]] == CORRIDOR:
+                        return False
+                except IndexError:
+                    pass
+        l = check.get('walled', None)
+        if l:
+            for p in l:
+                try:
+                    if self.cells[x + p[1], y + p[0]] & OPENSPACE:
+                        return False
+                except IndexError:
+                    pass
+        return True
+
+    def fix_doors(self):
+        pass
+
+    def empty_blocks(self):
+        pass
+
+
 
 
 
 def main():
-    dungeon = Dungeon('arkane sanctum', 50, 50,
-                      min_rooms=12,
-                      max_rooms=32,
+    dungeon = Dungeon('Arcane Sanctum', 50, 50,
+                      min_rooms=8,
+                      max_rooms=12,
                       dungeon_layout='crest',
                       anything='possible',
-                      room_layout='packed')
+                      )
     dungeon.init_cells()
     dungeon.emplace_rooms()
+    dungeon.open_rooms()
+    dungeon.corridors()
+    dungeon.clean_dungeon()
     dungeon.ascii_output()
 
 if __name__ == '__main__':
