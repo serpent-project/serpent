@@ -176,8 +176,19 @@ class Dungeon(object):
         self.num_rooms = len(self.rooms)
         self.room_base = int((min_rooms + 1) / 2)
         self.room_radix = int((max_rooms - min_rooms) / 2) + 1
+        if not opts.get('skip_init', False):
+            self.init_cells()
+            self.emplace_rooms()
+            self.open_rooms()
+            self.corridors()
+            self.clean_dungeon()
 
     def ascii_output(self):
+        '''
+            basic output of the dungeon layout generated
+            using asciis which can be used in most rich text fonts too
+            to send debug information also over rich text im software
+        '''
         output = []
         for y in xrange(self.height):
             line = ''
@@ -187,17 +198,17 @@ class Dungeon(object):
                 if c == NOTHING:
                     ch = 'o'
                 if c & BLOCKED:
-                    ch = 'X'
+                    ch = 'x'
                 if c & ROOM:
-                    ch = '-'
+                    ch = '='
                 if c & CORRIDOR:
                     ch = '~'
                 if c & PERIMETER:
                     ch = '+'
                 if c & ENTRANCE:
-                    ch = '%'
+                    ch = 'e'
                 if c & DOORSPACE:
-                    ch = 'H'
+                    ch = 'd'
                 line += ch
             output += [line]
         for line in output:
@@ -577,6 +588,7 @@ class Dungeon(object):
         if self.opts.get('remove_deadends', False):
             self.remove_deadends()
         self.fix_doors()
+        self.fix_rooms()
         self.empty_blocks()
 
     def remove_deadends(self):
@@ -658,6 +670,18 @@ class Dungeon(object):
                 else:
                     del room['door'][dir]
 
+    def fix_rooms(self):
+        """
+            removes corridors inside rooms
+        """
+        for rid, room in self.rooms.items():
+            print room
+            for x in range(room[WEST], room[EAST]):
+                for y in range(room[NORTH], room[SOUTH]):
+                    if self.cells[x, y] & CORRIDOR and not self.cells[x, y] & PERIMETER:
+                        self.cells[x, y] |= ROOM
+                        self.cells[x, y] &= ~CORRIDOR
+
     def empty_blocks(self):
         for x in xrange(self.width):
             for y in xrange(self.height):
@@ -673,11 +697,7 @@ def main():
                       dungeon_layout='crest',
                       anything='possible',
                       )
-    dungeon.init_cells()
-    dungeon.emplace_rooms()
-    dungeon.open_rooms()
-    dungeon.corridors()
-    dungeon.clean_dungeon()
+
     dungeon.ascii_output()
 
 if __name__ == '__main__':
