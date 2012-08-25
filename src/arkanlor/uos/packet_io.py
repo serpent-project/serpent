@@ -55,7 +55,7 @@ packet_lengths = [
     0x0000, 0x010C, 0xFFFF, 0xFFFF, 0x0009, 0x0000, 0xFFFF, 0xFFFF, # 0xD8
     0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xE0
     0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xE8
-    0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xF0
+    0xFFFF, 0xFFFF, 0xFFFF, 0x0018, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xF0
     0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0003, # 0xF8
 ]
 
@@ -155,26 +155,36 @@ class Packet(object):
                     d = 0
                 else:
                     d = ''
-            if not t:
-                self.w_boolean(d)
-            elif t == BYTE:
-                self.w_byte(d)
-            elif t == USHORT:
-                self.w_ushort(d)
-            elif t == UINT:
-                self.w_uint(d)
-            elif t == IPV4:
-                self.w_ipv4(d)
-            elif t == FIXSTRING:
-                self.w_fixstring(d, l)
-            elif t == CSTRING:
-                self.w_cstring(d)
-            elif t == PSTRING:
-                self.w_boolean(d)
-            elif t == RAW:
-                self.write_data(d)
-            else:
-                raise Exception('Unknown Packet in Datagram')
+            try:
+                if not t:
+                    self.w_boolean(d)
+                elif t == BYTE:
+                    self.w_byte(d)
+                elif t == USHORT:
+                    self.w_ushort(d)
+                elif t == UINT:
+                    self.w_uint(d)
+                elif t == IPV4:
+                    self.w_ipv4(d)
+                elif t == FIXSTRING:
+                    self.w_fixstring(d, l)
+                elif t == CSTRING:
+                    self.w_cstring(d)
+                elif t == PSTRING:
+                    self.w_boolean(d)
+                elif t == RAW:
+                    self.write_data(d)
+                else:
+                    raise Exception('Unknown Packet in Datagram')
+            except Exception, e:
+                print "="*80
+                print "datagram write exception"
+                print e
+                print "-"*80
+                print "type(d): %s, d=%s" % (type(d), str(d))
+                print "type(t): %s, t=%s" % (type(t), str(t))
+                print "="*80
+                raise
 
     def unpack(self):
         if self._datagram:

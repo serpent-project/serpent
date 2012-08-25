@@ -58,6 +58,12 @@ class UOS(Protocol):
     def send(self, data):
         self.transport.write(data)
 
+    def batch_send(self, datalist):
+        step = 20
+        i = 0
+        for d in xrange(int(len(datalist) / step)):
+            self.transport.write(''.join(datalist[step * d: step * d + step]))
+
     def on_packet(self, packet):
         self.handler(packet)
 

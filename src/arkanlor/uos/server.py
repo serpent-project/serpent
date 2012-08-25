@@ -30,13 +30,22 @@ class ServedClient:
         if packet[0] in p.server_parsers:
             packet = p.server_parsers[packet[0]](packet[1])
             packet.unpack()
-            print "< %s" % packet
+            #print "< %s" % packet
             self.signal('on_packet', packet)
         else:
             print "Packet unknown:", hex(packet[0])
 
     def send(self, data):
         if not isinstance(data, basestring):
-            print "> %s" % data
+            #print "> %s" % data
             data = data.serialize()
         self._protocol.send(data)
+
+    def sendall(self, data):
+        datalist = []
+        for d in data:
+            if not isinstance(data, basestring):
+                datalist += [d.serialize()]
+            else:
+                datalist += [d]
+        self._protocol.batch_send(datalist)

@@ -3,8 +3,10 @@
 from arkanlor.uos.engine import Engine
 from arkanlor.uos import packets as p
 import charcontrol
+import mapclient
 
-GAME_ENGINES = [charcontrol.CharControl]
+GAME_ENGINES = []
+
 FEATURES_T2A = 0x01
 FEATURES_RENAISSANCE = 0x02
 FEATURES_3DDAWN = 0x04
@@ -45,12 +47,15 @@ class Login(Engine):
 
         elif isinstance(packet, p.LoginCharacter):
             # authentication, logindenied etc?
-
+            # every client needs a map
+            map = mapclient.MapClient(self._ctrl)
+            # and an entity to control its character
+            charcontrol.CharControl(self._ctrl, map)
             # put in the game connection here.            
             for engine in GAME_ENGINES:
-                # initialize character control.
+                # initialize other engines.
                 engine(self._ctrl)
-            self._ctrl.signal('on_login', charname=packet.values.get('name'))
+            self._ctrl.signal('on_logging_in', charname=packet.values.get('name'))
             self._success()
         #elif isinstance(packet, p.ClientVersion):
         #    # note: if the client does not send this, we need a timer.

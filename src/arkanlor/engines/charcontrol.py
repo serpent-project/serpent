@@ -9,23 +9,24 @@ from arkanlor.uos import const
 from arkanlor import settings
 
 class CharControl(Engine):
-    def __init__(self, controller):
+    def __init__(self, controller, map):
         Engine.__init__(self, controller)
+        self.map = map
 
     def sysmessage(self, message):
         self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
                                 'serial': 0xffff,
                                 'message': message }))
 
-    def on_login(self, charname):
+    def on_logging_in(self, charname):
         # make the world aware that this engine is controlling our character.
 
         # security checks may happen here.
         #self.factory.world.register_engine(self, account)
         # create our gm dragon
-        m = self._ctrl._world.gamestate.gm_body(charname, 1318, 1076, 1)
+        m = self._ctrl._world.gamestate.gm_body(charname, 390, 3770, 1)
         self._ctrl.send(p.LoginConfirm({
-                                        'serial': m.serial,
+                                        'serial': m.id,
                                         'body': m.body,
                                         'x': m.x,
                                         'y': m.y,
@@ -33,9 +34,14 @@ class CharControl(Engine):
                                         'direction': m.dir,
                                         }
                                 ))
-        self.send(p.GIMapChange())
+        self._ctrl.signal('on_login', charname, m)
+        return True # stop cascade here.
+
+    def on_login(self, user, mobile):
+        self.user = user
+        self.mobile = mobile
         self.send(p.LoginComplete())
-        self.mobile = m
+
 
     def on_packet(self, packet):
         if isinstance(packet, p.MoveRequest):
@@ -44,7 +50,7 @@ class CharControl(Engine):
             # usually sent at beginning.
             m = self.mobile
             self.send(p.UpdatePlayer(
-                        { 'serial': m.serial,
+                        { 'serial': m.id,
                           'body': m.body,
                           'x': m.x,
                           'y': m.y,
@@ -56,7 +62,7 @@ class CharControl(Engine):
                           }
                         ))
             self.send(p.Teleport(
-                        { 'serial': m.serial,
+                        { 'serial': m.id,
                           'body': m.body,
                           'x': m.x,
                           'y': m.y,
@@ -74,14 +80,14 @@ class CharControl(Engine):
                                     'ttype': packet.values['ttype'],
                                     'color': packet.values['color'],
                                     'font': packet.values['font'],
-                                    'serial': self.mobile.serial,
+                                    'serial': self.mobile.id,
                                     'message': packet.values.get('message', '').replace('\0', '')
                                     }))
         elif isinstance(packet, p.GetPlayerStatus):
             #@todo: start a cascade getting the info for a specific serial.
             m = self.mobile
             self.send(p.StatusBarInfo().updated(
-                                    serial=m.serial,
+                                    serial=m.id,
                                     status_flag=0x04,
                                     name=m.name,
                                     hp=m.hp,

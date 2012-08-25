@@ -514,6 +514,7 @@ class RemoveGroup(Packet):
                  ('target', UINT)]
 
 class SendSkills(Packet):
+    #@todo: not finished.
     __slots__ = Packet.__slots__
     p_id = 0x1c
     p_type = P_SERVER
@@ -540,7 +541,88 @@ class SendSkills(Packet):
         self.begin()
 
         self.write_datagram(self._datagram)
+        # @todo: writing dynamic packets cleanup
+        return self.finish()
 
+class ObjectOldInfo(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x1a
+    p_type = P_SERVER
+    _datagram = []
+    # @todo: 
+
+class ObjectInfo(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0xf3
+    p_type = P_SERVER
+    p_size = 24
+    _datagram = [
+            ('info', USHORT, None, 0x1), # always 0x1 on OSI
+            ('datatype', BYTE), # 0x00 item, 0x02 multi
+            ('serial', UINT),
+            ('graphic', USHORT),
+            ('dir', BYTE),
+            ('amount', USHORT),
+            ('amount2', USHORT), # sent 2 times for unknown reason.
+            ('x', USHORT),
+            ('y', USHORT),
+            ('z', BYTE),
+            ('layer', BYTE),
+            ('color', USHORT),
+            ('flag', BYTE),
+                 ]
+
+class ServerMulti(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0xd8
+    p_size = 0
+    p_type = P_SERVER
+    _datagram = [
+        ('compression', BYTE),
+        ('unknown', BYTE),
+        ('serial', UINT),
+        ('revision', UINT),
+        ('count', USHORT),
+        ('bufferlength', USHORT),
+        ('planecount', BYTE), # unsure if existant.
+        ]
+
+    def unpack(self):
+        self.read_datagram(self._datagram)
+        if self.values.get('compression', 0x0):
+            # we do not do any compressions
+            self.read_datagram([('compressed', RAW)])
+            return self
+        _multipart_datagram = [
+                           ('graphic', USHORT),
+                           ('x', BYTE),
+                           ('y', BYTE),
+                           ('z', BYTE)]
+        self.values['items'] = []
+        for x in xrange(self.values.get('count', 0)):
+            item = {}
+            self.read_datagram(_multipart_datagram, item)
+            self.values['items'] += [item]
+        return self
+
+    def serialize(self):
+        self.begin()
+
+        num = len(self.values['items'])
+        print "Serializing %s items" % num
+        self.values['count'] = num
+        self.values['buffersize'] = num * 5
+        self.values['compression'] = 0x0
+        self.write_datagram(self._datagram)
+        items = self.values.get('items', [])
+        _multipart_datagram = [
+                           ('graphic', USHORT),
+                           ('x', BYTE),
+                           ('y', BYTE),
+                           ('z', BYTE)]
+        for x in xrange(num):
+            self.write_datagram(_multipart_datagram, items[x])
+        print "Length of Data %s " % len(self._data)
         return self.finish()
 
 

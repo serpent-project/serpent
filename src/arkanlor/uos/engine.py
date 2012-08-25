@@ -43,3 +43,6 @@ class Engine:
 
     def send(self, something):
         return self._ctrl.send(something)
+
+    def sendall(self, something):
+        return self._ctrl.sendall(something)
