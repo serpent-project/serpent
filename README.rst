@@ -1,16 +1,35 @@
 SERPENT PROJECT
 ===============
 
-The goal is to implement a python scriptset for editing maps like CentrED,
-but more dynamic in it's housing.
+The goal is to implement a python scriptset for editing isometric maps
 
-Basically the first goal is to implement all kinds of tools to help a 
-transition from the UO we have to a UO which takes us further by enabling
-approaches of usability design to this very old engine.
+Using the Ultima Online protocol to test against IRIS2, an open source
+lugre scripted ogre client for Ultima Online.
 
-The project will consist of:
-    * concept - Playground for experimentation.
+The project consists of a lot of legacy code and the arkanlor test server
+environment
+
+This Project is in its alpha stages.
+
+Main goals are:
     
+    * Massive Multiplayer Online Map Editing in iso2.5
+    
+    * Procedural Map generation
+    
+    * eventually some server emulation
+
+Project Code Description:
+    * arkanlor - Server environment written in twisted
+    
+    * arkanlor.boulder - Gamestate management, designed as Django App
+    
+    * arkanlor.uos - Ultima Online Server Protocol for twisted
+    
+    * arkanlor.ced - CentrED Protocol (not started yet) 
+    
+    * concept - Playground for experimentation with OpenGL rendering
+        
     * uolib1 - a library written mainly in python, which I used to manipulate
     UO data files for bugfixing, restructuring or cleaning up.
     Also I experimented with how to speed up python to nearly acceptable levels.
@@ -22,6 +41,3 @@ The project will consist of:
     * uolib - if I have time to remodel uolib into a more organized format.
     
     * glue - the GL using editor.
-    
-     
-    
