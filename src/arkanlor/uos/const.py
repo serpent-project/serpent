@@ -32,3 +32,15 @@ TTYPE_GUILD = 0x0D #Guild Chat
 TTYPE_ALLIANCE = 0x0E #Alliance Chat
 TTYPE_COMMAND = 0x0F #Command Prompts
 TTYPE_ENCODED = 0xC0 #Encoded Commands
+
+class MobileStatus:
+    Normal = 0x00
+    Unknown = 0x01
+    CanAlterPaperdoll = 0x02
+    Poisoned = 0x04
+    GoldenHealth = 0x08
+    Unknown2 = 0x10
+    Unknown3 = 0x20
+    WarMode = 0x40
+    Hidden = 0x80
+

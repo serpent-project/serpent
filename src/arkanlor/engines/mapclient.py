@@ -23,26 +23,41 @@ class MapClient(Engine):
         self.user = user
         self.mobile = mobile
         # send area around mobile.
-        self.send_mobile_area(mobile)
+        self.send_mobile_area(mobile, True)
 
-    def send_mobile_area(self, mobile=None):
+    def send_mobile_area(self, mobile=None, full=False):
         if mobile is None:
             mobile = self.mobile
-        items = self._ctrl._world.gamestate.items_in_rect(mobile.x - 10,
-                                                         mobile.y - 10,
-                                                         mobile.x + 10,
-                                                         mobile.y + 10)
+        if full:
+            x1, y1 = mobile.x - 32, mobile.y - 32
+            x2, y2 = mobile.x + 32, mobile.y + 32
+            items = self._ctrl._world.gamestate.items_in_rect(x1, y1, x2, y2)
+            mobiles = self._ctrl._world.gamestate.mobiles_in_rect(x1,
+                                                              y1,
+                                                              x2,
+                                                              y2,)
+        else:
+            items = self._ctrl._world.gamestate.items_outer_rect(mobile.x, mobile.y)
+            mobiles = []
         for item in items:
             self.send_object(item)
 
+        for mobile in mobiles:
+            if mobile != self.mobile:
+                self.send_object(mobile)
+
     def send_object(self, obj):
         serial = None
-        if obj.id in self.ids.keys():
-            serial = self.serials[obj.id]
-        else:
-            serial = self.get_new_serial()
+        serial_new = False
         if isinstance(obj, models.WorldObject):
             obj = obj.as_leaf()
+
+        if obj.id in self.ids.keys():
+            serial = self.ids[obj.id]
+        else:
+            serial_new = True
+            serial = self.get_new_serial()
+
         if isinstance(obj, models.ItemMulti) or isinstance(obj, dynamic.ItemMulti):
             # send multi data.
 
@@ -50,6 +65,7 @@ class MapClient(Engine):
             pck = obj.packet_info()
             pck['serial'] = serial
             self.send(p.ObjectInfo(pck))
+            #if serial_new:
             self.send(p.ServerMulti({'serial': serial,
                                      'revision': serial,
                                      'items': obj.items}))
@@ -57,9 +73,13 @@ class MapClient(Engine):
             pck = obj.packet_info()
             pck['serial'] = serial
             self.send(p.ObjectInfo(pck))
+        elif isinstance(obj, dynamic.Mobile):
+            print "%s sees %s" % (self.mobile.name, obj.name)
         if serial:
             # save our serial
             self.serials[serial] = obj.id
+            self.ids[obj.id] = serial
+
 
     def update_serials(self):
         # rebuild id cache

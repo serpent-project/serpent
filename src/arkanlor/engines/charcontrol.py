@@ -13,6 +13,17 @@ class CharControl(Engine):
         Engine.__init__(self, controller)
         self.map = map
 
+    def identify(self, callback):
+        # build my mobile data.
+        s = 'Name: %s, x: %x, y: %s, z: %s' % (self.mobile.name,
+                                               self.mobile.x,
+                                               self.mobile.y,
+                                               self.mobile.z)
+        try:
+            callback(s)
+        except:
+            print "Identify called with faulty callback."
+
     def sysmessage(self, message, color=0x24, font=0x4):
         self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
                                 'color': color,
@@ -28,6 +39,7 @@ class CharControl(Engine):
         # create our gm dragon
         lp = settings.LOGIN_POINTS['default']
         m = self._ctrl._world.gamestate.gm_body(charname, lp['x'], lp['y'], lp['z'])
+        self.shadow = self._ctrl._world.gamestate.gm_body('shadow of ' + charname, lp['x'], lp['y'], lp['z'])
         self._ctrl.send(p.LoginConfirm({
                                         'serial': m.id,
                                         'body': m.body,
@@ -44,11 +56,33 @@ class CharControl(Engine):
         self.user = user
         self.mobile = mobile
         self.send(p.LoginComplete())
+        # send our shadow
+        if self.shadow:
+            shadow = self.shadow.packet_info()
+            shadow['serial'] = self.shadow.id
+            self.send(p.ShowMobile(shadow))
 
 
     def on_packet(self, packet):
         if isinstance(packet, p.MoveRequest):
-            self.send(p.MoveAck({'seq': packet.values.get('seq')}))
+            walkcode, self.mobile = self._ctrl._world.gamestate.try_move(self.mobile,
+                                                                         packet.values.get('dir'))
+            if not walkcode:
+                self.send(p.MoveAck({'seq': packet.values.get('seq')}))
+                if self.shadow:
+                    shadow = self.mobile.packet_info()
+                    shadow['serial'] = self.shadow.id
+                    self.send(p.UpdateMobile(shadow))
+            elif walkcode:
+                self.send(p.MoveReject({'seq': packet.values.get('seq'),
+                                        'x': self.mobile.x,
+                                        'y': self.mobile.y,
+                                        'z': self.mobile.z,
+                                        'dir': self.mobile.dir}))
+            # check my range
+            if self.mobile.range_to_last_pos() > 12:
+                self._ctrl.signal('send_mobile_area', self.mobile)
+                self.mobile.remember_last_pos()
         elif isinstance(packet, p.ClientVersion):
             # usually sent at beginning.
             m = self.mobile
@@ -58,7 +92,7 @@ class CharControl(Engine):
                           'x': m.x,
                           'y': m.y,
                           'z': m.z,
-                          'direction': m.dir,
+                          'dir': m.dir,
                           'color': m.color,
                           'flag': 0x0,
                           'highlight': 0x0,
@@ -70,14 +104,12 @@ class CharControl(Engine):
                           'x': m.x,
                           'y': m.y,
                           'z': m.z,
-                          'direction': m.dir,
+                          'dir': m.dir,
                           'color': m.color,
                           'flag': 0x0, }
                                  ))
             # Send our motd.
-            self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
-                                'serial': 0xffff,
-                                'message': settings.VERSIONSTRING }))
+            self.sysmessage(settings.VERSIONSTRING)
         elif isinstance(packet, p.TalkRequest) or isinstance(packet, p.UnicodeTalkRequest):
             self.send(p.SendSpeech({'name': self.mobile.name,
                                     'ttype': packet.values['ttype'],

@@ -38,6 +38,7 @@ class Mobile(MapObject):
                                          'ar',
                                          'x', 'y', 'z', 'zhigh',
                                          'dir', 'color',
+                                         'last_pos'
                                          ]
     def __init__(self, _id, x=None, y=None, z=None):
         super(Mobile, self).__init__(_id)
@@ -57,6 +58,26 @@ class Mobile(MapObject):
         self.x = x or 0
         self.y = y or 0
         self.z = z or 0
+        self.remember_last_pos()
+
+    def range_to_last_pos(self):
+        # tell me how far am i from my last pos?
+        return abs(self.last_pos[0] - self.x) + \
+            abs(self.last_pos[1] - self.y)
+    def remember_last_pos(self):
+        self.last_pos = (self.x, self.y, self.z)
+
+    def packet_info(self):
+        return {
+                'x': self.x,
+                'y': self.y,
+                'z': self.z,
+                'body': self.body,
+                'dir': self.dir,
+                'color': self.color
+                }
+
+
 
 class Item(MapObject):
     __slots__ = MapObject.__slots__ + ['graphic',

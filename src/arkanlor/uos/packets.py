@@ -6,7 +6,8 @@
     @see gemuo for a client side only implementation.
     @see packet_io
 """
-from arkanlor.uos.packet_io import *
+from arkanlor.uos.packet_io import Packet, BYTE, USHORT, UINT, RAW, \
+    CSTRING, FIXSTRING, IPV4, BOOLEAN
 P_CLIENT, P_SERVER, P_BOTH, P_EXP = 0, 1, 2, 3
 
 
@@ -52,6 +53,23 @@ class MoveAck(Packet):
     p_type = P_BOTH
     _datagram = [('seq', BYTE),
                  ('notoriety', BYTE)]
+
+class MoveReject(Packet):
+    """
+        BYTE[1] sequence #
+        BYTE[2] xLoc
+        BYTE[2] yLoc
+        BYTE[1] direction
+        BYTE[1] zLoc
+    """
+    __slots__ = Packet.__slots__
+    p_id = 0x23
+    p_type = P_SERVER
+    _datagram = [('seq', BYTE),
+                 ('x', USHORT),
+                 ('y', USHORT),
+                 ('dir', BYTE),
+                 ('z', BYTE)]
 
 class GeneralInformation(Packet):
     """    
@@ -218,9 +236,14 @@ class MoveRequest(Packet):
     __slots__ = Packet.__slots__
     p_id = 0x02
     p_type = P_CLIENT
-    _datagram = [('direction', BYTE),
+    _datagram = [('dir', BYTE),
                  ('seq', BYTE),
                  ('fw_prev', UINT)]
+
+    def __unicode__(self):
+        return u'Movement with sequence %s in direction %s, fw_prev=%s' % (self.values.get('seq', '-'),
+                                                                           hex(self.values.get('dir', 0x9)),
+                                                                           self.values.get('fw_prev', '-'))
 
 
 class ClientSpy(Packet):
@@ -264,7 +287,7 @@ class LoginConfirm(Packet):
             ('body', USHORT),
             ('x', USHORT), ('y', USHORT), ('z', BYTE),
             ('z_high', BYTE),
-            ('direction', BYTE),
+            ('dir', BYTE),
             (1, USHORT),
             (2, UINT),
             (3, UINT),
@@ -292,7 +315,7 @@ class UpdatePlayer(Packet):
             ('serial', UINT),
             ('body', USHORT),
             ('x', USHORT), ('y', USHORT), ('z', BYTE),
-            ('direction', BYTE),
+            ('dir', BYTE),
             ('color', USHORT),
             ('flag', BYTE),
             ('highlight', BYTE)
@@ -310,7 +333,7 @@ class Teleport(Packet):
             ('flag', BYTE),
             ('x', USHORT), ('y', USHORT),
             (1, USHORT),
-            ('direction', BYTE),
+            ('dir', BYTE),
             ('z', BYTE),
             ]
 
@@ -607,9 +630,7 @@ class ServerMulti(Packet):
 
     def serialize(self):
         self.begin()
-
         num = len(self.values['items'])
-        print "Serializing %s items" % num
         self.values['count'] = num
         self.values['buffersize'] = num * 5
         self.values['compression'] = 0x0
@@ -622,9 +643,93 @@ class ServerMulti(Packet):
                            ('z', BYTE)]
         for x in xrange(num):
             self.write_datagram(_multipart_datagram, items[x])
-        print "Length of Data %s " % len(self._data)
         return self.finish()
 
+class ShowMobile(Packet):
+    """ also refered to as EquipMob """
+    __slots__ = Packet.__slots__
+    p_id = 0x78
+    p_size = 0
+    p_type = P_SERVER
+    _datagram = [
+            ('serial', UINT),
+            ('body', USHORT),
+            ('x', USHORT),
+            ('y', USHORT),
+            ('z', BYTE),
+            ('dir', BYTE),
+            ('color', USHORT),
+            ('status', BYTE),
+            ('notoriety', BYTE), ]
+
+    def unpack(self):
+        self.read_datagram(self._datagram)
+        _equipped_item_datagram = [
+                           ('serial', UINT),
+                           ('graphic', USHORT),
+                           ('layer', BYTE),
+                           ('color', USHORT)]
+        self.values['items'] = []
+        while len(self._data) > 4:
+            item = {}
+            self.read_datagram(_equipped_item_datagram, item)
+            self.values['items'] += [item]
+        return self
+
+    def serialize(self):
+        self.begin()
+        self.write_datagram(self._datagram)
+        items = self.values.get('items', [])
+        _equipped_item_datagram = [
+                           ('serial', UINT),
+                           ('graphic', USHORT),
+                           ('layer', BYTE),
+                           ('color', USHORT)]
+        for x in xrange(len(items)):
+            self.write_datagram(_equipped_item_datagram, items[x])
+        self.w_uint(0) # terminator of loop
+        return self.finish()
+
+class ShowMobileExtended(ShowMobile):
+    """ also refered to as Show Mobile, or EquipMOB Extended"""
+    __slots__ = ShowMobile.__slots__
+    p_id = 0xd3
+    p_size = 0
+    p_type = P_SERVER
+    _datagram = ShowMobile._datagram + [
+                    (0, USHORT),
+                    (1, USHORT),
+                    (2, USHORT),
+                ]
+
+class UpdateMobile(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x77
+    p_size = 0x11
+    p_type = P_SERVER
+    _datagram = [
+            ('serial', UINT),
+            ('body', USHORT),
+            ('x', USHORT),
+            ('y', USHORT),
+            ('z', BYTE),
+            ('dir', BYTE),
+            ('color', USHORT),
+            ('status', BYTE),
+            ('notoriety', BYTE),
+            ]
+
+class UpdateMobileExtended(UpdateMobile):
+    __slots__ = Packet.__slots__
+    p_id = 0x78
+    p_size = 0x19
+    p_type = P_SERVER
+    _datagram = UpdateMobile._datagram + [
+            (0, USHORT),
+            (1, USHORT),
+            (2, USHORT),
+            (3, USHORT),
+            ]
 
 server_parsers = {
     NoEncryption.p_id: NoEncryption,

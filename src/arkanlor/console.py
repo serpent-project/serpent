@@ -75,7 +75,10 @@ class ConsoleCommandProtocol(basic.LineReceiver):
         """
         self.sendLine('Connected (%s):' % (len(self.factory.clients)))
         for addr in self.factory.clients.keys():
+            self.sendLine('-' * 20)
             self.sendLine(str(addr))
+            self.factory.clients[addr].signal('identify', self.sendLine)
+
 
     def do_say(self, *message):
         """

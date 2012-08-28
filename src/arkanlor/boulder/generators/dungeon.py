@@ -20,17 +20,42 @@ class DungeonGenerator(object):
         self._d = d
 
     def generate_at(self, worldmap, cx, cy, cz=0):
-        i = models.ItemMulti(
+        def bulk_store(items):
+            print "bulk store %s items" % len(items)
+            if not items:
+                return []
+            # save these items
+            for n in range(0, len(items), 100):
+                batch = items[n:n + 100]
+                print "bulk creating %s items." % len(batch)
+                models.ItemMultiAttachment.objects.bulk_create(batch)
+            return []
+
+        def multiitem(x, y, z=0):
+            i = models.ItemMulti(
                             worldmap=worldmap,
-                            x=cx,
-                            y=cy,
-                            z=cz,
+                            x=x,
+                            y=y,
+                            z=z,
                             custom_graphic=0x2000)
-        i.save()
+            i.save()
+            return i
+
+        def block_no(block):
+            return (block - (block % 8)) / 8
+
         d = self._d
+        multi_items = {}
+        bx, by = int(numpy.ceil(d.width / 8.0)), int(numpy.ceil(d.height / 8.0))
+        for x in xrange(bx):
+            for y in xrange(by):
+                multi_items[x, y] = multiitem(cx + (x * 8), cy + (y * 8))
+        print multi_items
         items = []
         for x in xrange(d.width):
             for y in xrange(d.height):
+                bx, by = block_no(x), block_no(y)
+                mi = multi_items[bx, by]
                 # 0x515: cobblestones.
                 # 0x519: paved stones
                 # 0x1771 + 11: stones
@@ -55,14 +80,11 @@ class DungeonGenerator(object):
                 if graphic:
                     # create our item.
                     # o = Item(self.get_next_free_id(), x1 + x, y1 + y, 0, graphic)
-                    items += [models.ItemMultiAttachment(item_multi=i,
-                                                  x_offset=x,
-                                                  y_offset=y,
+                    items += [models.ItemMultiAttachment(item_multi=mi,
+                                                  x_offset=x % 8,
+                                                  y_offset=y % 8,
                                                   z_offset=cz,
                                                   graphic=graphic)
                               ]
-        for n in range(0, len(items), 100):
-            batch = items[n:n + 100]
-            print "bulk creating %s items." % len(batch)
-            models.ItemMultiAttachment.objects.bulk_create(batch)
-        return i
+        bulk_store(items)
+
