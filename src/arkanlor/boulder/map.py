@@ -35,6 +35,7 @@ class MapBlock:
             offset_y = offset_y - offset_y % BLOCK_SHAPE[Y]
         self.offset_x, self.offset_y = offset_x, offset_y
         self.matrix = numpy.zeros(BLOCK_SHAPE, dtype=int) # flag matrix
+        self.items = [None for x in xrange(64)] # 8x8
 
 
 class Map:
@@ -48,6 +49,8 @@ class Map:
             self.blocks[bx, by] = MapBlock(self, x, y)
         return self.blocks[bx, by]
 
+    def walkable(self, x, y):
+        pass
 
 
 

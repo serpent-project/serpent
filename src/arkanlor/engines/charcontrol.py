@@ -13,8 +13,10 @@ class CharControl(Engine):
         Engine.__init__(self, controller)
         self.map = map
 
-    def sysmessage(self, message):
+    def sysmessage(self, message, color=0x24, font=0x4):
         self.send(p.SendSpeech({'ttype': const.TTYPE_SYS_CORNER,
+                                'color': color,
+                                'font': font,
                                 'serial': 0xffff,
                                 'message': message }))
 
@@ -24,7 +26,8 @@ class CharControl(Engine):
         # security checks may happen here.
         #self.factory.world.register_engine(self, account)
         # create our gm dragon
-        m = self._ctrl._world.gamestate.gm_body(charname, 390, 3770, 1)
+        lp = settings.LOGIN_POINTS['default']
+        m = self._ctrl._world.gamestate.gm_body(charname, lp['x'], lp['y'], lp['z'])
         self._ctrl.send(p.LoginConfirm({
                                         'serial': m.id,
                                         'body': m.body,

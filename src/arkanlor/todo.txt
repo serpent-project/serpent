@@ -150,3 +150,13 @@ The various types of text is as follows:
 0x0E - Alliance Chat
 0x0F - Command Prompts
 ]]--
+
+
+##############################################################################
+
+packet engine -> world -> worldstate
+
+ - no direct access between engines and worldstate?
+
+##############################################################################
+

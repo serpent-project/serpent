@@ -16,8 +16,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 '''
 #
-import sys
+import sys, os
 sys.path.append("..")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "arkanlor.settings")
 
 from arkanlor.console import stdio, ConsoleCommandProtocol
 from twisted.internet.task import LoopingCall

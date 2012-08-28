@@ -19,14 +19,21 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
-
-import os
+##############################################################################
+import os.path, os
+# defining root for our python modules
+SETTINGS_DIR = os.path.abspath(os.path.dirname(
+                                        os.path.join(os.getcwd(), __file__)))
+# defining root for whole project
+PROJECT_ROOT = os.path.abspath(os.path.join(SETTINGS_DIR, '../..'))
+##############################################################################
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 # Path to the directory containing this settings.py file. For Windows, make
 # sure to use Unix-style forward slashes, they are automatically translated.
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+SECRET_KEY = '12345'
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -35,7 +42,7 @@ ADMINS = (
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'arkanlor.db', # Or path to database file if using sqlite3.
+        'NAME': os.path.abspath(os.path.join(PROJECT_ROOT, 'arkanlor.db')), # Or path to database file if using sqlite3.
         'USER': '', # Not used with sqlite3.
         'PASSWORD': '', # Not used with sqlite3.
         'HOST': '', # Set to empty string for localhost. Not used with sqlite3.
@@ -46,6 +53,21 @@ DATABASES = {
 UOS_PORT = 2597
 
 VERSIONSTRING = 'Arkanlor v0.1'
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.admin',
+    # project
+    'arkanlor.boulder',
+)
+
+LOGIN_POINTS = {
+            'default': {'x': 390,
+                        'y': 3770,
+                        'z': 1,
+                        # more info like map / world?
+                        }
+                }
 
 try:
     from settings_local import *

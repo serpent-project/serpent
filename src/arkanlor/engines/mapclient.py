@@ -8,7 +8,7 @@ from arkanlor.uos.engine import Engine#@UnresolvedImport
 from arkanlor.uos import packets as p
 from arkanlor.uos import const
 from arkanlor import settings
-from arkanlor.boulder.gamestate import Item, Mobile, ItemMulti
+from arkanlor.boulder import dynamic, models
 
 class MapClient(Engine):
     def __init__(self, controller):
@@ -22,16 +22,18 @@ class MapClient(Engine):
         # just save it for now?
         self.user = user
         self.mobile = mobile
-        # create a dungeon
-        sizex = 50
-        sizey = 50
-        d = self._ctrl._world.gamestate.create_dungeon_in_area(
-                                                            mobile.x + 5,
-                                                            mobile.y + 5,
-                                                            0,
-                                                            sizex,
-                                                            sizey)
-        self.send_object(d)
+        # send area around mobile.
+        self.send_mobile_area(mobile)
+
+    def send_mobile_area(self, mobile=None):
+        if mobile is None:
+            mobile = self.mobile
+        items = self._ctrl._world.gamestate.items_in_rect(mobile.x - 10,
+                                                         mobile.y - 10,
+                                                         mobile.x + 10,
+                                                         mobile.y + 10)
+        for item in items:
+            self.send_object(item)
 
     def send_object(self, obj):
         serial = None
@@ -39,7 +41,9 @@ class MapClient(Engine):
             serial = self.serials[obj.id]
         else:
             serial = self.get_new_serial()
-        if isinstance(obj, ItemMulti):
+        if isinstance(obj, models.WorldObject):
+            obj = obj.as_leaf()
+        if isinstance(obj, models.ItemMulti) or isinstance(obj, dynamic.ItemMulti):
             # send multi data.
 
             # send multi item.
@@ -49,7 +53,7 @@ class MapClient(Engine):
             self.send(p.ServerMulti({'serial': serial,
                                      'revision': serial,
                                      'items': obj.items}))
-        elif isinstance(obj, Item):
+        elif isinstance(obj, models.Item) or isinstance(obj, dynamic.Item):
             pck = obj.packet_info()
             pck['serial'] = serial
             self.send(p.ObjectInfo(pck))
