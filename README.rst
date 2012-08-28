@@ -12,7 +12,6 @@ environment
 This Project is in its alpha stages.
 
 Main goals are:
-    
     * Massive Multiplayer Online Map Editing in iso2.5
     
     * Procedural Map generation
@@ -30,13 +29,7 @@ Project Code Description:
     
     * concept - Playground for experimentation with OpenGL rendering
         
-    * uolib1 - a library written mainly in python, which I used to manipulate
-    UO data files for bugfixing, restructuring or cleaning up.
-    Also I experimented with how to speed up python to nearly acceptable levels.
-    My first UOLib was written in Pascal from scratch in 2000. 
-    However, if you search a Pascal UO Engine, you might refer to the CentrED
-    repository of Andreas Schneider, or to Alazanes InsideUO.
-    For .net users there is one at RunUO.
+    * uolib1 - a library written mainly in python, which I used to manipulate UO data files for bugfixing, restructuring or cleaning up. Also I experimented with how to speed up python to nearly acceptable levels. My first UOLib was written in Pascal from scratch in 2000.  However, if you search a Pascal UO Engine, you might refer to the CentrED repository of Andreas Schneider, or to Alazanes InsideUO. For .net users there is one at RunUO.
     
     * uolib - if I have time to remodel uolib into a more organized format.
     
