@@ -28,6 +28,7 @@ class DungeonGenerator(object):
                             custom_graphic=0x2000)
         i.save()
         d = self._d
+        items = []
         for x in xrange(d.width):
             for y in xrange(d.height):
                 # 0x515: cobblestones.
@@ -54,5 +55,14 @@ class DungeonGenerator(object):
                 if graphic:
                     # create our item.
                     # o = Item(self.get_next_free_id(), x1 + x, y1 + y, 0, graphic)
-                    i.add_item(x, y, 0, graphic)
+                    items += [models.ItemMultiAttachment(item_multi=i,
+                                                  x_offset=x,
+                                                  y_offset=y,
+                                                  z_offset=cz,
+                                                  graphic=graphic)
+                              ]
+        for n in range(0, len(items), 100):
+            batch = items[n:n + 100]
+            print "bulk creating %s items." % len(batch)
+            models.ItemMultiAttachment.objects.bulk_create(batch)
         return i
