@@ -29,7 +29,7 @@ class Subscriptions(object):
 
 class WorldObject(object):
     __slots__ = ['_id', 'name', '_var', '_db', 'world']
-    def __init__(self, world, _id):
+    def __init__(self, world=None, _id=None):
         self._id = _id
         self.name = None
         self._var = {}
@@ -54,7 +54,7 @@ class MapObject(WorldObject):
         a map object defining a position in the world
     """
     __slots__ = WorldObject.__slots__ + ['x', 'y', 'z', 'map']
-    def __init__(self, world, _id, x=None, y=None, z=None,):
+    def __init__(self, world=None, _id=None, x=None, y=None, z=None,):
         super(MapObject, self).__init__(world, _id)
         self.x = x or 0
         self.y = y or 0
@@ -72,7 +72,7 @@ class Mobile(MapObject):
                                          'dir', 'color',
                                          'last_pos'
                                          ]
-    def __init__(self, world, _id, x=None, y=None, z=None):
+    def __init__(self, world=None, _id=None, x=None, y=None, z=None):
         super(Mobile, self).__init__(world, _id, x, y, z)
         self.hp = None
         self.maxhp = None
@@ -137,11 +137,15 @@ class Mobile(MapObject):
     def disappear_to(self, client):
         self.world.remove_mobile_for_mobile(self, client)
 
+    def near_mobiles(self):
+        return self.world.get_mobiles_near_mobile(self)
+
     def update_subscribers(self):
-        for mobile in self.world.get_mobiles_near_mobile(self):
+        for mobile in self.near_mobiles():
             if mobile.subscribe(self):
                 # i am new.
                 self.appear_to(mobile)
+                self.subscribe(mobile)
             else:
                 self.update_to(mobile)
         # todo: unsubscribe!

@@ -32,10 +32,7 @@ class MapClient(Engine):
             x1, y1 = mobile.x - 32, mobile.y - 32
             x2, y2 = mobile.x + 32, mobile.y + 32
             items = self._ctrl._world.gamestate.items_in_rect(x1, y1, x2, y2)
-            mobiles = self._ctrl._world.gamestate.mobiles_in_rect(x1,
-                                                              y1,
-                                                              x2,
-                                                              y2,)
+            mobiles = self.mobile.near_mobiles()
         else:
             items = self._ctrl._world.gamestate.items_outer_rect(mobile.x, mobile.y)
             mobiles = []
@@ -44,15 +41,17 @@ class MapClient(Engine):
 
         for mobile in mobiles:
             if mobile != self.mobile:
-                self.send_object(mobile)
+                self.send_object(mobile, True)
 
     def get_serial(self, obj, notify=False):
         serial_new = False
-        if obj.id in self.ids.keys():
-            serial = self.ids[obj.id]
+        if int(obj.id) in self.ids.keys():
+            serial = self.ids[int(obj.id)]
         else:
             serial_new = True
             serial = self.get_new_serial()
+            self.ids[int(obj.id)] = serial
+            self.serials[serial] = obj.id
         if notify:
             return serial_new, serial
         return serial
@@ -87,8 +86,8 @@ class MapClient(Engine):
 
         if serial:
             # save our serial
-            self.serials[serial] = obj.id
-            self.ids[obj.id] = serial
+            self.serials[serial] = int(obj.id)
+            self.ids[int(obj.id)] = serial
 
 
     def update_serials(self):

@@ -7,6 +7,7 @@ from arkanlor.engines.ping import Ping
 class ServedClient:
     def __init__(self, protocol, world=None): #
         protocol.handler = self._handle_packet
+        protocol.quit = self._quit
         self._world = world
         self._protocol = protocol
         self._engines = []
@@ -19,6 +20,16 @@ class ServedClient:
 
     def remove_engine(self, engine):
         self._engines.remove(engine)
+
+    def shutdown(self):
+        self.signal('on_disconnect')
+        for engine in self._engines:
+            self.remove_engine(engine)
+            del engine
+
+    def _quit(self):
+        self.shutdown()
+        self._protocol.factory.loseClient(self)
 
     def signal(self, name, *args, **keywords):
         for engine in self._engines:

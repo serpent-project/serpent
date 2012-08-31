@@ -37,11 +37,11 @@ class UOS(Protocol):
     def connectionMade(self):
         self.factory.num_connections += 1
         Protocol.connectionMade(self)
-        #self.transport.write(struct.pack('>I', self.__seed))
         self._input = ''
 
     def connectionLost(self, reason):
         self.factory.num_connections -= 1
+        self.quit()
 
     def dataReceived(self, data):
         if not self.initialized:

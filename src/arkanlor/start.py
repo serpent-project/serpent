@@ -43,6 +43,11 @@ class ArkFactory(Factory):
         self.clients[addr] = client
         return protocol
 
+    def loseClient(self, client):
+        for key, value in self.clients.items():
+            if value == client:
+                del self.clients[key]
+
 if __name__ == '__main__':
     # build our world.
     boulder = BoulderTask(reactor)
