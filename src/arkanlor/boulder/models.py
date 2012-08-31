@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import User
 
 class WorldMap(models.Model):
     name = models.CharField(max_length=100)
@@ -10,7 +11,7 @@ class WorldObjectType(models.Model):
     default_graphic = models.IntegerField()
 
 class WorldObject(models.Model):
-    worldmap = models.ForeignKey(WorldMap, related_name='world_objects')
+    worldmap = models.ForeignKey(WorldMap, related_name='world_objects', blank=True, null=True)
     object_type = models.ForeignKey(WorldObjectType, null=True)
     content_type = models.ForeignKey(ContentType, editable=False, null=True,)
     name = models.CharField(max_length=200, null=True)
@@ -98,8 +99,6 @@ class ItemMulti(Item):
                 'datatype': 0x02,
                 }
 
-
-
 class ItemMultiAttachment(models.Model):
     item_multi = models.ForeignKey(ItemMulti, related_name='attached_items')
     x_offset = models.IntegerField(default=0)
@@ -114,3 +113,26 @@ class ItemMultiAttachment(models.Model):
                 'z': self.z_offset,
                 'graphic': self.graphic,
                 }
+
+class Mobile(WorldObject):
+    body = models.IntegerField()
+    hp = models.IntegerField()
+    maxhp = models.IntegerField()
+    #
+    str = models.IntegerField()
+    dex = models.IntegerField()
+    int = models.IntegerField()
+    #
+    stam = models.IntegerField()
+    maxstam = models.IntegerField()
+    #
+    mana = models.IntegerField()
+    maxmana = models.IntegerField()
+    #
+    ar = models.IntegerField()
+    active = models.BooleanField(default=False)
+
+class PlayerMobile(Mobile):
+    owner = models.ForeignKey(User, blank=True, null=True)
+    logged_in = models.BooleanField(default=False)
+

@@ -8,6 +8,7 @@
 """
 from arkanlor.uos.packet_io import Packet, BYTE, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN
+from arkanlor.uos.const import LoginDeniedReason
 P_CLIENT, P_SERVER, P_BOTH, P_EXP = 0, 1, 2, 3
 
 
@@ -303,6 +304,13 @@ class LoginConfirm(Packet):
             #(4, USHORT),
             #(5, UINT)
             ]
+
+class LoginDenied(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x82
+    p_type = P_SERVER
+    _datagram = [('reason', BYTE, None, LoginDeniedReason.CommunicationProblem), ]
+
 
 class UpdatePlayer(Packet):
     """
@@ -731,6 +739,45 @@ class UpdateMobileExtended(UpdateMobile):
             (3, USHORT),
             ]
 
+class CreateCharacter(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x00
+    p_size = 104
+    p_type = P_SERVER
+    _datagram = [
+            ('pattern1', UINT, None, 0xedededed),
+            ('pattern2', UINT, None, 0xffffffff),
+            ('pattern3', BYTE),
+            ('name', FIXSTRING, 30),
+            (0, USHORT),
+            ('flag', UINT),
+            (1, UINT),
+            ('logincount', UINT),
+            ('profession', BYTE),
+            (2, FIXSTRING, 15),
+            ('sex', BYTE),
+            ('str', BYTE),
+            ('dex', BYTE),
+            ('int', BYTE),
+            ('skill1', BYTE),
+            ('skill1_value', BYTE),
+            ('skill2', BYTE),
+            ('skill2_value', BYTE),
+            ('skill3', BYTE),
+            ('skill3_value', BYTE),
+            ('color', USHORT),
+            ('hair_style', USHORT),
+            ('hair_color', USHORT),
+            ('facial_hair', USHORT),
+            ('location', USHORT),
+            (3, USHORT),
+            ('slot', USHORT),
+            ('client_ip', IPV4),
+            ('shirt_color', USHORT),
+            ('pants_color', USHORT),
+                 ]
+
+
 server_parsers = {
     NoEncryption.p_id: NoEncryption,
     Dummy.p_id: Dummy,
@@ -749,6 +796,7 @@ server_parsers = {
     MoveAck.p_id: MoveAck, # resync!
     TalkRequest.p_id: TalkRequest,
     UnicodeTalkRequest.p_id: UnicodeTalkRequest,
+    CreateCharacter.p_id: CreateCharacter,
     }
 
 client_parsers = {

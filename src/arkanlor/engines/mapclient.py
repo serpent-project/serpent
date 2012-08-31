@@ -8,7 +8,7 @@ from arkanlor.uos.engine import Engine#@UnresolvedImport
 from arkanlor.uos import packets as p
 from arkanlor.uos import const
 from arkanlor import settings
-from arkanlor.boulder import dynamic, models
+from arkanlor.boulder import dynamics, models
 
 class MapClient(Engine):
     def __init__(self, controller):
@@ -46,21 +46,23 @@ class MapClient(Engine):
             if mobile != self.mobile:
                 self.send_object(mobile)
 
-    def send_object(self, obj):
-        serial = None
+    def get_serial(self, obj, notify=False):
         serial_new = False
-        if isinstance(obj, models.WorldObject):
-            obj = obj.as_leaf()
-
         if obj.id in self.ids.keys():
             serial = self.ids[obj.id]
         else:
             serial_new = True
             serial = self.get_new_serial()
+        if notify:
+            return serial_new, serial
+        return serial
 
-        if isinstance(obj, models.ItemMulti) or isinstance(obj, dynamic.ItemMulti):
-            # send multi data.
 
+    def send_object(self, obj, update_only=False):
+        serial_new, serial = self.get_serial(obj, True)
+        if isinstance(obj, models.WorldObject):
+            obj = obj.as_leaf()
+        if isinstance(obj, models.ItemMulti) or isinstance(obj, dynamics.ItemMulti):
             # send multi item.
             pck = obj.packet_info()
             pck['serial'] = serial
@@ -69,12 +71,20 @@ class MapClient(Engine):
             self.send(p.ServerMulti({'serial': serial,
                                      'revision': serial,
                                      'items': obj.items}))
-        elif isinstance(obj, models.Item) or isinstance(obj, dynamic.Item):
+        elif isinstance(obj, models.Item) or isinstance(obj, dynamics.Item):
             pck = obj.packet_info()
             pck['serial'] = serial
             self.send(p.ObjectInfo(pck))
-        elif isinstance(obj, dynamic.Mobile):
-            print "%s sees %s" % (self.mobile.name, obj.name)
+        elif isinstance(obj, dynamics.Mobile):
+            pck = obj.packet_info()
+            pck['serial'] = serial
+            # create
+            if not update_only or serial_new:
+                self.send(p.ShowMobile(pck))
+            else:
+                self.send(p.UpdateMobile(pck))
+            # todo: for new serials make sure name is sent.
+
         if serial:
             # save our serial
             self.serials[serial] = obj.id

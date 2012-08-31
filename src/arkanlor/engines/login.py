@@ -2,8 +2,11 @@
 
 from arkanlor.uos.engine import Engine
 from arkanlor.uos import packets as p
+from arkanlor.boulder.models import PlayerMobile
+from arkanlor import settings
 import charcontrol
 import mapclient
+from arkanlor.uos.const import LoginDeniedReason
 
 GAME_ENGINES = []
 
@@ -22,30 +25,68 @@ class Login(Engine):
     def __init__(self, controller):
         Engine.__init__(self, controller)
         self.servers = [ {'name': 'Weltenfall'}, {'name': 'Local'}, {'name': 'And another'}]
+        self.account = None
+
+    def send_character_list(self, account):
+        characters = PlayerMobile.objects.filter(owner=self.account)
+        characters = [ {'name': str(char.name)} for char in characters ]
+        self._ctrl.send(p.CharacterList({'characters': characters}))
 
     def on_packet(self, packet):
         if isinstance(packet, p.AccountLogin):
-            self._ctrl.send(p.ServerList({'servers': self.servers }))
+            # authenticate.
+            self.account = self._ctrl._world.authenticate(
+                                    packet.values.get('username', None),
+                                    packet.values.get('password', None))
+            if self.account:
+                self._ctrl.send(p.ServerList({'servers': self.servers }))
+            else:
+                #self._ctrl.send(p.LoginDeclined())
+                self.send(p.LoginDenied({'reason': LoginDeniedReason.Incorrect }))
+        elif isinstance(packet, p.CreateCharacter):
+            if self.account:
+                lp = settings.LOGIN_POINTS['default']
+                mobile = self._ctrl._world.gamestate.new_body(
+                                    PlayerMobile,
+                                    packet.values.get('name'),
+                                    lp['x'], lp['y'], lp['z'],
+                                    dont_persist=True)
+                mobile.str = packet.values.get('str')
+                mobile.dex = packet.values.get('dex')
+                mobile.int = packet.values.get('int')
+                mobile.color = packet.values.get('color')
+                mobile._db.owner = self.account
+                mobile._db_update()
+                self.send_character_list(self.account)
+            else:
+                self.send(p.LoginDenied())
         elif isinstance(packet, p.SelectServer):
-            #self._client.send(p.LoginComplete())
-            # > redirect.0x8c
-            # < postlogin
-            # > features 0xb9
-            self._ctrl.send(p.Features({'bitflag':FEATURES_ARKANLOR}))
-            # > charlist 0xa9
-            # < select char
-            self._ctrl.send(p.CharacterList({'characters':
-                                                 [{'name': 'Test1'},
-                                                  {'name': 'Test2'}, ]}
-                                              ))
+            if self.account:
+                # if this is not true, select server was tried to be sent before account login.
+                # disconnect and log.
+                # > redirect.0x8c
+                # < postlogin
+                # > features 0xb9
+                self._ctrl.send(p.Features({'bitflag':FEATURES_ARKANLOR}))
+                # > charlist 0xa9
+                # < select char
+                self.send_character_list(self.account)
+            else:
+                self.send(p.LoginDenied())
         #elif isinstance(packet, p.PlayCharacter):
         #    pass #(should be followed by clientversion)
         #elif isinstance(packet, p.ClientVersion):
         #    #??? 
         elif isinstance(packet, p.GameLogin):
-            self._ctrl.send(p.ServerList({'servers': self.servers }))
-
+            if self.account:
+                self._ctrl.send(p.ServerList({'servers': self.servers }))
+            else:
+                self.send(p.LoginDenied())
+                return
         elif isinstance(packet, p.LoginCharacter):
+            if not self.account:
+                self.send(p.LoginDenied())
+                return
             # authentication, logindenied etc?
             # every client needs a map
             map = mapclient.MapClient(self._ctrl)
@@ -55,7 +96,14 @@ class Login(Engine):
             for engine in GAME_ENGINES:
                 # initialize other engines.
                 engine(self._ctrl)
-            self._ctrl.signal('on_logging_in', charname=packet.values.get('name'))
+            try:
+                char = PlayerMobile.objects.get(
+                                            owner=self.account,
+                                            name=packet.values.get('name'))
+            except PlayerMobile.DoesNotExist, e:
+                self.send(p.LoginDenied({'reason': LoginDeniedReason.IGRAuth}))
+                return
+            self._ctrl.signal('on_logging_in', account=self.account, char=char)
             self._success()
         #elif isinstance(packet, p.ClientVersion):
         #    # note: if the client does not send this, we need a timer.

@@ -49,7 +49,7 @@ def main():
     print "Generating World..."
     # create a dungeon near login
     m = add_map('default')
-    login_dungeon(m)
+    #login_dungeon(m)
     print "Done."
 
 

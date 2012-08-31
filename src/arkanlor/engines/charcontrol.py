@@ -7,6 +7,7 @@ from arkanlor.uos.engine import Engine#@UnresolvedImport
 from arkanlor.uos import packets as p
 from arkanlor.uos import const
 from arkanlor import settings
+from arkanlor.boulder.dynamics.agent import Agent
 
 class CharControl(Engine):
     def __init__(self, controller, map):
@@ -31,25 +32,31 @@ class CharControl(Engine):
                                 'serial': 0xffff,
                                 'message': message }))
 
-    def on_logging_in(self, charname):
+    def send_object(self, obj, update_only=False):
+        return self.map.send_object(obj, update_only)
+
+    def get_serial(self, obj, notify=False):
+        return self.map.get_serial(obj, notify)
+
+    def on_logging_in(self, account, char):
         # make the world aware that this engine is controlling our character.
 
         # security checks may happen here.
         #self.factory.world.register_engine(self, account)
         # create our gm dragon
-        lp = settings.LOGIN_POINTS['default']
-        m = self._ctrl._world.gamestate.gm_body(charname, lp['x'], lp['y'], lp['z'])
-        self.shadow = self._ctrl._world.gamestate.gm_body('shadow of ' + charname, lp['x'], lp['y'], lp['z'])
+        m = self._ctrl._world.gamestate.get_agent(char, socket=self)
+        #self.shadow = self._ctrl._world.gamestate.gm_body('shadow of ' + charname, lp['x'], lp['y'], lp['z'])
+        self.shadow = None # disable shadow.
         self._ctrl.send(p.LoginConfirm({
-                                        'serial': m.id,
+                                        'serial': self.map.get_serial(m),
                                         'body': m.body,
                                         'x': m.x,
                                         'y': m.y,
                                         'z': m.z,
-                                        'direction': m.dir,
+                                        'dir': m.dir,
                                         }
                                 ))
-        self._ctrl.signal('on_login', charname, m)
+        self._ctrl.signal('on_login', account, m)
         return True # stop cascade here.
 
     def on_login(self, user, mobile):
@@ -65,15 +72,13 @@ class CharControl(Engine):
 
     def on_packet(self, packet):
         if isinstance(packet, p.MoveRequest):
-            walkcode, self.mobile = self._ctrl._world.gamestate.try_move(self.mobile,
-                                                                         packet.values.get('dir'))
-            if not walkcode:
+            if self.mobile.walk(packet.values.get('dir')):
                 self.send(p.MoveAck({'seq': packet.values.get('seq')}))
                 if self.shadow:
                     shadow = self.mobile.packet_info()
                     shadow['serial'] = self.shadow.id
                     self.send(p.UpdateMobile(shadow))
-            elif walkcode:
+            else:
                 self.send(p.MoveReject({'seq': packet.values.get('seq'),
                                         'x': self.mobile.x,
                                         'y': self.mobile.y,
@@ -87,7 +92,7 @@ class CharControl(Engine):
             # usually sent at beginning.
             m = self.mobile
             self.send(p.UpdatePlayer(
-                        { 'serial': m.id,
+                        { 'serial': self.map.get_serial(m),
                           'body': m.body,
                           'x': m.x,
                           'y': m.y,
@@ -99,7 +104,7 @@ class CharControl(Engine):
                           }
                         ))
             self.send(p.Teleport(
-                        { 'serial': m.id,
+                        { 'serial': self.map.get_serial(m),
                           'body': m.body,
                           'x': m.x,
                           'y': m.y,
@@ -124,7 +129,7 @@ class CharControl(Engine):
             self.send(p.StatusBarInfo().updated(
                                     serial=m.id,
                                     status_flag=0x04,
-                                    name=m.name,
+                                    name=str(m.name),
                                     hp=m.hp,
                                     maxhp=m.maxhp,
                                     str=m.str,

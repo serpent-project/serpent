@@ -9,6 +9,7 @@
 # note: r=y=i=height, c=x=j=width
 # while translating to python, i chose to use x/y and w/h only mostly
 import numpy
+from arkanlor.utils import sort, seeded
 
 #control
 MAX_ROOMS = 999
@@ -134,17 +135,6 @@ BLOCK_ROOM = BLOCKED | ROOM
 BLOCK_CORR = BLOCKED | PERIMETER | CORRIDOR
 BLOCK_DOOR = BLOCKED | DOORSPACE
 
-
-def seeded(something):
-    if isinstance(something, basestring):
-        return [ord(i) for i in something]
-    elif isinstance(something, list):
-        return something
-    else:
-        return [something, ]
-
-def sort(a, b):
-    return min(a, b), max(a, b)
 
 class Dungeon(object):
     def __init__(self, seed, width, height,

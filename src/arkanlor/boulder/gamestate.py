@@ -18,7 +18,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
-import models, dynamic
+import models, dynamics
 import numpy
 
 DIR_N = 0x00
@@ -44,26 +44,64 @@ DIR_MATRIX = {
         }
 
 class BoulderState(object):
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name, task=None):
+        self.task = task # the boulder task, commonly referred to as "_world".
+        self.name = name # a name
         self.mobiles = []
         self.items = []
         self.ids = {}
         self.free_id = 0x0222
         self.worldmap = models.WorldMap.objects.get(name='default')
 
+    def create_mobile_for_mobile(self, mobile, client):
+        """
+            * sends appropriate script signal
+            * if mobile is an agent, he is notified via packets. 
+        """
+        if isinstance(client, dynamics.Agent) and client.socket:
+            client.socket.send_object(mobile)
+
+    def update_mobile_for_mobile(self, mobile, client):
+        """
+            * sends appropriate script signal
+            * if mobile is an agent, he is notified via packets.
+        """
+        if isinstance(client, dynamics.Agent) and client.socket:
+            client.socket.send_object(mobile, update_only=True)
+
+    def remove_mobile_for_mobile(self, mobile, client):
+        """
+            * sends appropriate script signal
+            * if mobile is an agent, he is notified via packets
+        """
+        pass
+
+    def get_mobiles_near_mobile(self, client):
+        """
+            return a list of mobiles near this mobile.
+        """
+        mobs = []
+        x1, y1 = client.x - 18, client.y - 18
+        x2, y2 = client.x + 18, client.y + 18
+        for mobile in self.mobiles:
+            if (mobile != client)\
+            and (mobile.x >= x1) and (mobile.x < x2)\
+            and (mobile.y >= y1) and (mobile.y < y2):
+                mobs += [mobile]
+        return mobs
 
     def get_next_free_id(self):
         """
             reserves a serial to be used.
             note: database <> dynamic id handling to be solved
             for now, all efforts go into direct db solution.
+            @deprecated: try to rely on db based stuff.
         """
         id = self.free_id
         while id in self.ids.keys():
             id += 1
-        self.ids[id] = None
-        self.free_id = id + 1
+        #self.ids[id] = None
+        #self.free_id = id + 1
         return id
 
     def get_object(self, id):
@@ -88,18 +126,18 @@ class BoulderState(object):
                                     y__lt=y2)
         return items
 
-    def items_outer_rect(self, x, y, dx=32, dy=32, minimal=8):
+    def items_outer_rect(self, x, y, dx=18, dy=18, minimal=8):
         items = models.Item.objects.filter(
                                     worldmap=self.worldmap,
                                     x__gte=x - dx,
                                     x__lt=x + dx,
-                                    y__gte=y - dx,
-                                    y__lt=y + dx,
+                                    y__gte=y - dy,
+                                    y__lt=y + dy,
                                     ).exclude(
                                     x__gte=x - dx + minimal,
                                     x__lt=x + dx - minimal,
-                                    y__gte=y - dx + minimal,
-                                    y__lt=y + dx - minimal,
+                                    y__gte=y - dy + minimal,
+                                    y__lt=y + dy - minimal,
                                     )
         return items
 
@@ -110,20 +148,45 @@ class BoulderState(object):
                 mobs += [mobile]
         return mobs
 
-    def gm_body(self, charname='GM Body', x=None, y=None, z=None):
-        # create a mobile in our world as dragon
-        mobile = dynamic.Mobile(self.get_next_free_id(), x, y, z)
-        mobile.name = charname
+    def new_body(self, mobile_type=None,
+                       name='Man',
+                       x=None, y=None, z=None,
+                       socket=None,
+                       dont_persist=False):
+        if socket:
+            mobile = dynamics.Agent(self,
+                                    self.get_next_free_id(),
+                                    x, y, z,
+                                    socket)
+        else:
+            mobile = dynamics.Mobile(self,
+                                    self.get_next_free_id(),
+                                    x, y, z)
+        mobile.name = name
         mobile.hp, mobile.maxhp = 100, 100
         mobile.str, mobile.dex, mobile.int = 100, 100, 100
-        mobile.stam, mobile.maxstam = 1000, 1000
-        mobile.mana, mobile.maxmana = 9999, 9999
-        mobile.ar = 10 # dragon scales! :D
-
+        mobile.stam, mobile.maxstam = 100, 100
+        mobile.mana, mobile.maxmana = 100, 100
+        mobile.ar = 0 # dragon scales! :D
         mobile.body = 0x190
+        if mobile_type:
+            mobile._db_create(mobile_type)
+        if not dont_persist:
+            self.ids[mobile.id] = mobile
+            self.mobiles += [mobile]
+        return mobile
 
-        self.ids[mobile.id] = mobile
-        self.mobiles += [mobile]
+    def get_agent(self, db_instance, socket=None):
+        if db_instance.id in self.ids.keys():
+            mobile = self.ids[db_instance.id]
+        else:
+            mobile = dynamics.Agent(self, None, db_instance.x, db_instance.y, db_instance.z,)
+            mobile._db = db_instance
+            mobile._db_read()
+            self.ids[db_instance.id] = mobile
+            self.mobiles += [mobile]
+        if socket:
+            mobile.socket = socket
         return mobile
 
     def try_move(self, mobile, direction):

@@ -44,3 +44,12 @@ class MobileStatus:
     WarMode = 0x40
     Hidden = 0x80
 
+class LoginDeniedReason:
+    Incorrect = 0x00 # Incorrect name/password.
+    AlreadyUsed = 0x01 #Someone is already using this account.
+    Blocked = 0x02 #Your account has been blocked.
+    CredentialsInvalid = 0x03 #Your account credentials are invalid.
+    CommunicationProblem = 0x04 #Communication problem.
+    IGRLimit = 0x05 #The IGR concurrency limit has been met.
+    IGRTimeLimit = 0x06 #The IGR time limit has been met.
+    IGRAuth = 0x07 #General IGR authentication failure.

@@ -69,6 +69,8 @@ LOGIN_POINTS = {
                         }
                 }
 
+ARKANLOR_AUTO_REGISTER = True
+
 try:
     from settings_local import *
 except ImportError, e:
