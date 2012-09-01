@@ -1,7 +1,10 @@
-numpy
-pyopengl
-sphinx
-#twisted
-#-e git+git://github.com/cculianu/gemuo.git
-Django
+# following on debian:
+# python-numpy liblapack-dev libblas-dev python-twisted
 scipy
+
+# only for concept:
+# pyopengl
+
+# Needed:
+sphinx
+Django

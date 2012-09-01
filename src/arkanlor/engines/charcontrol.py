@@ -16,13 +16,14 @@ class CharControl(Engine):
 
     def identify(self, callback):
         # build my mobile data.
-        s = 'Name: %s, x: %x, y: %s, z: %s' % (self.mobile.name,
+        s = 'Name: %s, x: %x, y: %s, z: %s' % (str(self.mobile.name),
                                                self.mobile.x,
                                                self.mobile.y,
                                                self.mobile.z)
         try:
             callback(s)
-        except:
+        except Exception, e:
+            print e
             print "Identify called with faulty callback."
 
     def sysmessage(self, message, color=0x24, font=0x4):

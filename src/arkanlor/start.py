@@ -53,7 +53,7 @@ if __name__ == '__main__':
     boulder = BoulderTask(reactor)
     # run our boulder server.
     lc = LoopingCall(boulder.run)
-    lc.start(0.1)
+    lc.start(settings.ARKANLOR_TICK_SPEED)
     # run our network server.
     endpoint = TCP4ServerEndpoint(reactor, settings.UOS_PORT)
     factory = ArkFactory(boulder)

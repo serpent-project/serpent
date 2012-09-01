@@ -70,6 +70,8 @@ LOGIN_POINTS = {
                 }
 
 ARKANLOR_AUTO_REGISTER = True
+ARKANLOR_TICK_SPEED = 0.01
+ARKANLOR_TICK_LIMIT = 0.02
 
 try:
     from settings_local import *

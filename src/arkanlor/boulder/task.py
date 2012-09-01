@@ -42,7 +42,11 @@ class BoulderTask(object):
 
     def _run(self, delta):
         # check queue here.
-        pass
+        if delta > settings.ARKANLOR_TICK_LIMIT:
+            print "tick speed exceeded: %s" % delta
+        else:
+            # do my thangs.
+            pass
 
     def run(self):
         # time diff.
