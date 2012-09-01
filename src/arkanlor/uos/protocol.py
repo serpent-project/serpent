@@ -19,8 +19,10 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
 from twisted.internet.protocol import Protocol
-import struct  #@UnresolvedImport
+import struct, re  #@UnresolvedImport
 from arkanlor.uos.packet_io import packet_lengths
+from django.http import HttpResponse, HttpResponseNotAllowed
+from django.test.client import RequestFactory, ClientHandler, Client
 
 class UOProtocolException(Exception):
     pass
@@ -33,6 +35,7 @@ class UOS(Protocol):
     def __init__(self, factory):
         self.factory = factory
         self.initialized = False
+        self.http_handler = None
 
     def connectionMade(self):
         self.factory.num_connections += 1
@@ -46,6 +49,44 @@ class UOS(Protocol):
     def dataReceived(self, data):
         if not self.initialized:
             encryption = data[:4]
+            # detect other protocols.
+            if encryption == 'GET ':
+                header, data = data.split('\r\n', 1)
+                method, path, proto = header.split(' ')
+                print "http request detected: %s %s" % (method, path)
+                # note: return a HttpResponseRedirect here if you disable this mixin.
+
+                # else play webserver:
+                environ = dict(re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", data))
+                conn = self.transport.getHost()
+                environ['SERVER_NAME'] = conn.host
+                environ['SERVER_PORT'] = conn.port
+                # 
+                if not self.http_handler:
+                    client = Client(**environ)
+                    self.http_handler = client
+                else:
+                    client = self.http_handler
+                response = client.get(path) # get a django request.
+
+                # Write our http response and exit.
+                self.transport.write('HTTP/1.1 %s' % response.status_code)
+                self.transport.write(str(response))
+                self.transport.loseConnection()
+                return
+            elif encryption == 'POST':
+                self.transport.write(str(HttpResponseNotAllowed()))
+                self.transport.loseConnection()
+                return
+            elif encryption == chr(0xfe):
+                # minecraft status
+                print "Minecraft pinged me."
+                message = 'NOT minecraft'
+                message = ''.join([ '\x00%s' % c for c in message ])
+                self.transport.write('\xff\x00\r%sx00\xa7\x000\x00\xa7\x003\x000' % message)
+                self.transport.loseConnection()
+                return
+            # go on.
             print "Client connects, encryption-key: %s" % ('-'.join([hex(ord(i)) for i in encryption]))
             data = data[4:]
             self.initialized = True

@@ -6,8 +6,9 @@
     @see gemuo for a client side only implementation.
     @see packet_io
 """
-from arkanlor.uos.packet_io import Packet, BYTE, USHORT, UINT, RAW, \
-    CSTRING, FIXSTRING, IPV4, BOOLEAN
+from arkanlor.uos.packet_io import BYTE, USHORT, UINT, RAW, \
+    CSTRING, FIXSTRING, IPV4, BOOLEAN, packet_list, SubPackets
+from arkanlor.uos.packet_io import UOPacket as Packet
 from arkanlor.uos.const import LoginDeniedReason
 P_CLIENT, P_SERVER, P_BOTH, P_EXP = 0, 1, 2, 3
 
@@ -17,7 +18,7 @@ class Dummy(Packet):
     __slots__ = Packet.__slots__
     p_id = 0x32 # ascii code for 2. useful for netcat.
     p_type = P_BOTH
-    _datagram = [ (BYTE, 'byte'), ]
+    _datagram = [ ('byte', BYTE,), ]
 
 class NoEncryption(Packet):
     __slots__ = Packet.__slots__
@@ -778,26 +779,24 @@ class CreateCharacter(Packet):
                  ]
 
 
-server_parsers = {
-    NoEncryption.p_id: NoEncryption,
-    Dummy.p_id: Dummy,
-    AccountLogin.p_id: AccountLogin,
-    GameLogin.p_id: GameLogin,
-    SelectServer.p_id: SelectServer,
-    LoginComplete.p_id: LoginComplete,
-    LoginCharacter.p_id: LoginCharacter,
-    PingMessage.p_id: PingMessage,
-    GetPlayerStatus.p_id: GetPlayerStatus,
-    ClientVersion.p_id: ClientVersion,
-    SingleClick.p_id: SingleClick,
-    DoubleClick.p_id: DoubleClick,
-    GeneralInformation.p_id: GeneralInformation,
-    MoveRequest.p_id: MoveRequest,
-    MoveAck.p_id: MoveAck, # resync!
-    TalkRequest.p_id: TalkRequest,
-    UnicodeTalkRequest.p_id: UnicodeTalkRequest,
-    CreateCharacter.p_id: CreateCharacter,
-    }
+server_parsers = packet_list(
+ NoEncryption,
+ Dummy,
+ AccountLogin,
+ GameLogin,
+ SelectServer,
+ LoginComplete,
+ LoginCharacter,
+ PingMessage,
+ GetPlayerStatus,
+ ClientVersion,
+ SingleClick,
+ DoubleClick,
+ GeneralInformation,
+ MoveRequest,
+ MoveAck, # resync!
+ TalkRequest,
+ UnicodeTalkRequest,
+ CreateCharacter,)
 
-client_parsers = {
-    }
+client_parsers = packet_list()

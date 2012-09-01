@@ -49,14 +49,21 @@ DATABASES = {
         'PORT': '', # Set to empty string for default. Not used with sqlite3.
     }
 }
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+#     'django.template.loaders.eggs.Loader',
+)
 
-UOS_PORT = 2597
+UOS_PORT = 2597, 2596
+ROOT_URLCONF = 'arkanlor.urls'
 
 VERSIONSTRING = 'Arkanlor v0.1'
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.admin',
+    'django.contrib.sessions',
     # project
     'arkanlor.boulder',
 )

@@ -55,9 +55,14 @@ if __name__ == '__main__':
     lc = LoopingCall(boulder.run)
     lc.start(settings.ARKANLOR_TICK_SPEED)
     # run our network server.
-    endpoint = TCP4ServerEndpoint(reactor, settings.UOS_PORT)
+    ports = settings.UOS_PORT
+    if not isinstance(ports, list) and not isinstance(ports, tuple):
+        ports = (ports,)
     factory = ArkFactory(boulder)
-    endpoint.listen(factory)
+    for port in ports:
+        print "Establishing Server endpoint at port %s" % port
+        endpoint = TCP4ServerEndpoint(reactor, port)
+        endpoint.listen(factory)
     # bind console
     stdio.StandardIO(ConsoleCommandProtocol(factory))
     print "Arkanlor running."

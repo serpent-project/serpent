@@ -59,6 +59,49 @@ packet_lengths = [
     0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0003, # 0xF8
 ]
 
+def packet_list(*packets):
+    ret = {}
+    for packet in packets:
+        ret[packet.p_id] = packet
+    return ret
+
+class SubPackets(object):
+    __slots__ = ['packets']
+    def __init__(self, *packets):
+        self.packets = packet_list(packets)
+
+    def packet_read(self, p_id, values, data):
+        """
+            reads a subpacket with p_id from data into values.
+            returns values, data
+        """
+        packet_class = self.packets.get(p_id, None)
+        if packet_class is None:
+            print "read: subpacket id %s not found." % p_id
+        else:
+            # instanciate the packet class
+            # set data and values
+            # write out packet
+            # return our updated values and the rest of the data
+            pass
+        return values, data
+
+    def packet_write(self, p_id, values, data):
+        """
+            writes a subpacket with p_id from values into data.
+            returns values, data
+        """
+        packet_class = self.packets.get(p_id, None)
+        if packet_class is None:
+            print "write: subpacket id %s not found." % p_id
+        else:
+            # instanciate the packet class
+            # set data and values
+            # write out packet
+            # return our updated values and the rest of the data
+            pass
+        return values, data
+
 class Packet(object):
     # see euclid.py for further optimizations.
     __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values' ]
@@ -79,8 +122,6 @@ class Packet(object):
         elif packet_or_values is None:
             self.values = {}
             self._data = ''
-        if self.p_id:
-            self.p_length = packet_lengths[self.p_id]
 
     def __repr__(self):
         try:
@@ -109,6 +150,9 @@ class Packet(object):
         if values is None:
             values = self.values
         for item in datagram:
+            if isinstance(item, SubPackets):
+                # subpacket write.
+                continue
             l, key, t, item = None, item[0], item[1], item[2:]
             if item: # optional argument length
                 l = item[0]
@@ -142,6 +186,9 @@ class Packet(object):
         if values is None:
             values = self.values
         for item in datagram:
+            if isinstance(item, SubPackets):
+                # subpacket read.
+                continue
             _d, l, key, t, item = None, None, item[0], item[1], item[2:]
             if item: # optional argument length
                 l, item = item[0], item[1:]
@@ -300,3 +347,14 @@ class Packet(object):
             self.write_data(struct.pack('4B', *x))
         else:
             raise Exception, "Ipv4 invalid?"
+
+class UOPacket(Packet):
+    # see euclid.py for further optimizations.
+    __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values' ]
+    p_id = None
+    p_length = None
+
+    def __init__(self, packet_or_values=None):
+        super(UOPacket, self).__init__(packet_or_values)
+        if self.p_id:
+            self.p_length = packet_lengths[self.p_id]
