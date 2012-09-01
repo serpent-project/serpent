@@ -1,0 +1,9 @@
+{% extends "boulder/base.html" %}
+
+{% block body %}
+    <h1>Arkanlor Status</h1>
+    <p>Running on ports: {{ uos_port }}</p>
+    <p>Number of Mobiles: {{ world_info.num_mobiles }}</p>
+    <p>Number of Items: {{ world_info.num_items }}</p>
+    
+{% endblock body %}

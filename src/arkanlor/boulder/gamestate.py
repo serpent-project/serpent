@@ -209,4 +209,10 @@ class BoulderState(object):
         mobile.dir = direction
         return 0, mobile
 
+    def world_info(self):
+        # get infos about this boulder
+        return {
+                'num_mobiles': len(self.mobiles),
+                'num_items': models.Item.objects.filter(worldmap=self.worldmap).count(),
+                }
 

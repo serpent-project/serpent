@@ -21,7 +21,8 @@ GNU General Public License for more details.
 from twisted.internet.protocol import Protocol
 import struct, re  #@UnresolvedImport
 from arkanlor.uos.packet_io import packet_lengths
-from django.http import HttpResponse, HttpResponseNotAllowed
+from django.http import HttpResponse, HttpResponseNotAllowed, \
+    HttpResponseForbidden
 from django.test.client import RequestFactory, ClientHandler, Client
 
 class UOProtocolException(Exception):
@@ -61,6 +62,8 @@ class UOS(Protocol):
                 conn = self.transport.getHost()
                 environ['SERVER_NAME'] = conn.host
                 environ['SERVER_PORT'] = conn.port
+                environ['WORLD'] = self.factory.world
+                environ['CLIENTS'] = self.factory.clients
                 # 
                 if not self.http_handler:
                     client = Client(**environ)
@@ -70,12 +73,14 @@ class UOS(Protocol):
                 response = client.get(path) # get a django request.
 
                 # Write our http response and exit.
-                self.transport.write('HTTP/1.1 %s' % response.status_code)
+                self.transport.write('HTTP/1.1 %s\r\n' % response.status_code)
                 self.transport.write(str(response))
                 self.transport.loseConnection()
                 return
             elif encryption == 'POST':
-                self.transport.write(str(HttpResponseNotAllowed()))
+                response = HttpResponseForbidden() # or redirect?
+                self.transport.write('HTTP/1.1 %s %s\r\n' % (response.status_code, 'read only server'))
+                self.transport.write(str(response))
                 self.transport.loseConnection()
                 return
             elif encryption == chr(0xfe):
