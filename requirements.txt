@@ -1,10 +1,10 @@
 # following on debian:
 # python-numpy liblapack-dev libblas-dev python-twisted
-scipy
+# scipy
 
 # only for concept:
 # pyopengl
 
-# Needed:
+# Arkanlor.
 sphinx
 Django

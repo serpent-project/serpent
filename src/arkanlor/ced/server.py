@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-from arkanlor.uos import packets as p
+from arkanlor.ced import packets as p
 from arkanlor.engines.log import LogEngine
-from arkanlor.engines.login import Login
-from arkanlor.engines.ping import Ping
+from arkanlor.engines.cedlogin import CedLogin
 
-class ServedClient:
+class ServedClientCED:
     def __init__(self, protocol, world=None): #
         protocol.handler = self._handle_packet
         protocol.quit = self._quit
         self._world = world
         self._protocol = protocol
         self._engines = []
-        Ping(self)
-        #LogEngine(self)
-        Login(self)
+        LogEngine(self)
+        CedLogin(self)
+        # self.signal('on_connect')
 
     def add_engine(self, engine):
         self._engines.append(engine)

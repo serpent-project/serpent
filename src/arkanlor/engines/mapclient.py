@@ -18,7 +18,7 @@ class MapClient(Engine):
         self.serial_base = 0x1000
 
     def on_login(self, user, mobile):
-        self.send(p.GIMapChange())
+        self.send(p.MapChange({'map': 0}))
         # just save it for now?
         self.user = user
         self.mobile = mobile

@@ -17,6 +17,7 @@ BYTE = 1
 USHORT = 2
 UINT = 4
 IPV4 = 5
+SBYTE = 6
 #IPV6 = 6
 FIXSTRING = 30
 CSTRING = 40
@@ -66,51 +67,80 @@ def packet_list(*packets):
     return ret
 
 class SubPackets(object):
-    __slots__ = ['packets']
-    def __init__(self, *packets):
-        self.packets = packet_list(packets)
+    __slots__ = ['packets', 'identifier']
+    def __init__(self, identifier, *packets):
+        self.packets = packet_list(*packets)
+        self.identifier = identifier
 
-    def packet_read(self, p_id, values, data):
+    def packet_read(self, values, data):
         """
             reads a subpacket with p_id from data into values.
             returns values, data
         """
+        # read our identifier
+        if not self.identifier:
+            raise Exception('Subpackets without identifier')
+        else:
+            p_id = values.get(self.identifier, None)
+        if not p_id:
+            return values, data
         packet_class = self.packets.get(p_id, None)
         if packet_class is None:
-            print "read: subpacket id %s not found." % p_id
+            print "read: subpacket id %s not understood." % hex(p_id)
         else:
             # instanciate the packet class
             # set data and values
             # write out packet
             # return our updated values and the rest of the data
-            pass
+            p = packet_class(values)
+            p._data = data
+            p.unpack()
+            values.update(p.values)
+            data = p._data
         return values, data
 
-    def packet_write(self, p_id, values, data):
+    def packet_write(self, values, data):
         """
             writes a subpacket with p_id from values into data.
             returns values, data
         """
+        if not self.identifier:
+            raise Exception('Subpackets without identifier')
+        else:
+            p_id = values.get(self.identifier, None)
+        if not p_id:
+            return values, data
         packet_class = self.packets.get(p_id, None)
         if packet_class is None:
-            print "write: subpacket id %s not found." % p_id
+            print "write: subpacket id %s not understood." % hex(p_id)
         else:
+
             # instanciate the packet class
             # set data and values
+            p = packet_class(data)
+            p.values = values
             # write out packet
+            p._serialize()
             # return our updated values and the rest of the data
-            pass
+            values.update(p.values)
+            data = p._data
         return values, data
 
 class Packet(object):
     # see euclid.py for further optimizations.
-    __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values' ]
+    __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values',
+                  ]
     p_id = None
     p_type = None
     p_length = None
+
     _data = None
     _datagram = []
     values = None
+
+    def get_flow(self):
+        return '>'
+    flow = property(get_flow)
 
     def __init__(self, packet_or_values=None):
         if isinstance(packet_or_values, basestring):
@@ -131,7 +161,10 @@ class Packet(object):
 
     def read_data(self, length):
         if len(self._data) < length:
-            raise Exception("Packet is too short")
+            raise Exception("Packet is too short P_ID: %s, values %s" % (
+                                            hex(self.p_id),
+                                            self.values
+                                            ))
         x, self._data = self._data[:length], self._data[length:]
         return x
 
@@ -151,7 +184,9 @@ class Packet(object):
             values = self.values
         for item in datagram:
             if isinstance(item, SubPackets):
-                # subpacket write.
+                # subpacket read
+                values, self._data = item.packet_read(values,
+                                                      self._data)
                 continue
             l, key, t, item = None, item[0], item[1], item[2:]
             if item: # optional argument length
@@ -160,6 +195,8 @@ class Packet(object):
                 values[key] = self.r_boolean()
             elif t == BYTE:
                 values[key] = self.r_byte()
+            elif t == SBYTE:
+                values[key] = self.r_sbyte()
             elif t == USHORT:
                 values[key] = self.r_ushort()
             elif t == UINT:
@@ -170,6 +207,8 @@ class Packet(object):
                 values[key] = self.r_fixstring(l)
             elif t == CSTRING:
                 values[key] = self.r_cstring()
+            elif t == UCSTRING:
+                values[key] = self.r_ucstring()
             elif t == PSTRING:
                 values[key] = self.r_pstring()
             elif t == RAW:
@@ -187,7 +226,8 @@ class Packet(object):
             values = self.values
         for item in datagram:
             if isinstance(item, SubPackets):
-                # subpacket read.
+                # subpacket write.
+                values, self._data = item.packet_write(values, self._data)
                 continue
             _d, l, key, t, item = None, None, item[0], item[1], item[2:]
             if item: # optional argument length
@@ -207,6 +247,8 @@ class Packet(object):
                     self.w_boolean(d)
                 elif t == BYTE:
                     self.w_byte(d)
+                elif t == SBYTE:
+                    self.w_sbyte(d)
                 elif t == USHORT:
                     self.w_ushort(d)
                 elif t == UINT:
@@ -217,6 +259,8 @@ class Packet(object):
                     self.w_fixstring(d, l)
                 elif t == CSTRING:
                     self.w_cstring(d)
+                elif t == UCSTRING:
+                    self.w_ucstring(d)
                 elif t == PSTRING:
                     self.w_boolean(d)
                 elif t == RAW:
@@ -233,15 +277,21 @@ class Packet(object):
                 print "="*80
                 raise
 
+    def _unpack(self):
+        return self
+
     def unpack(self):
         if self._datagram:
             self.read_datagram(self._datagram)
-        return self
+        return self._unpack()
+
+    def _serialize(self):
+        if self._datagram:
+            self.write_datagram(self._datagram)
 
     def serialize(self):
         self.begin()
-        if self._datagram:
-            self.write_datagram(self._datagram)
+        self._serialize()
         return self.finish(self._data)
 
     def begin(self):
@@ -254,7 +304,7 @@ class Packet(object):
         if self.p_length == 0:
             if len(data) > 0xf000:
                 raise Exception, "Packet too large"
-            data = data[0] + struct.pack('>H', len(data) + 2) + data[1:]
+            data = data[0] + struct.pack('%sH' % self.flow, len(data) + 2) + data[1:]
         else:
             if len(data) != self.p_length:
                 print 'pid: %s, expected: %s, got: %s, data: %s' % (
@@ -265,15 +315,19 @@ class Packet(object):
 
     def r_uint(self):
         """ 4 bytes unsigned integer """
-        return struct.unpack('>I', self.read_data(4))[0]
+        return struct.unpack('%sI' % self.flow, self.read_data(4))[0]
 
     def r_ushort(self):
         """ 2 bytes unsigned integer """
-        return struct.unpack('>H', self.read_data(2))[0]
+        return struct.unpack('%sH' % self.flow, self.read_data(2))[0]
 
     def r_byte(self):
         """ 1 byte """
-        return struct.unpack('>B', self.read_data(1))[0]
+        return struct.unpack('%sB' % self.flow, self.read_data(1))[0]
+
+    def r_sbyte(self):
+        """ 1 byte signed """
+        return struct.unpack('%sb' % self.flow, self.read_data(1))[0]
 
     def r_boolean(self):
         """ 1 byte != 0 """
@@ -287,6 +341,16 @@ class Packet(object):
         x, self._data = self._data[:i], self._data[i + 1:]
         return x
 
+    def r_ucstring(self):
+        s = ''
+        x = None
+        while not x or x != '\0\0':
+            if x:
+                s += x
+            x = self.r_fixstring(2)
+        return s.decode('utf-16')
+
+
     def r_pstring(self):
         return self.r_fixstring(self.r_byte())
 
@@ -296,23 +360,23 @@ class Packet(object):
     ### Writing
 
     def w_uint(self, x):
-        self.write_data(struct.pack('>I', x))
+        self.write_data(struct.pack('%sI' % self.flow, x))
 
     def w_ushort(self, x):
         assert x >= 0 and x < 65536
-        self.write_data(struct.pack('>H', x))
+        self.write_data(struct.pack('%sH' % self.flow, x))
 
     def w_sshort(self, x):
         assert x >= -32768 and x < 32768
-        self.write_data(struct.pack('>h', x))
+        self.write_data(struct.pack('%sh' % self.flow, x))
 
     def w_byte(self, x):
         assert x >= 0 and x < 256
-        self.write_data(struct.pack('>B', x))
+        self.write_data(struct.pack('%sB' % self.flow, x))
 
     def w_sbyte(self, x):
         assert x >= -128 and x < 128
-        self.write_data(struct.pack('>b', x))
+        self.write_data(struct.pack('%sb' % self.flow, x))
 
     def w_boolean(self, x):
         if x:
@@ -323,6 +387,8 @@ class Packet(object):
     def w_fixstring(self, x, length):
         if len(x) > length:
             x = x[:length]
+        # ensure str
+        x = str(x)
         self.write_data(x)
         self.write_data('\0' * (length - len(x)))
 
@@ -331,9 +397,9 @@ class Packet(object):
         self.w_byte(0)
 
     def w_ucstring(self, x):
-        for ch in x:
-            self.w_ushort(ord(ch))
-            self.w_ushort(0)
+        s = x.encode('utf-16')
+        self.w_fixstring(s, len(s))
+        self.w_ushort(0)
 
     def w_pstring(self, x):
         assert len(x) < 255

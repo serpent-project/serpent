@@ -33,6 +33,20 @@ TTYPE_ALLIANCE = 0x0E #Alliance Chat
 TTYPE_COMMAND = 0x0F #Command Prompts
 TTYPE_ENCODED = 0xC0 #Encoded Commands
 
+class SpeechType:
+    Normal = 0x00 # Normal 
+    Broadcast = 0x01 # Broadcast/System
+    Emote = 0x02 # Emote 
+    SystemCorner = 0x06 # System/Lower Corner
+    MessageCorner = 0x07 # Message/Corner With Name
+    Whisper = 0x08 # Whisper
+    Yell = 0x09 # Yell
+    Spell = 0x0A # Spell
+    GuildChat = 0x0D # Guild Chat
+    AllianceChat = 0x0E # Alliance Chat
+    CommandPrompt = 0x0F # Command Prompts
+    Encoded = 0xc0
+
 class MobileStatus:
     Normal = 0x00
     Unknown = 0x01

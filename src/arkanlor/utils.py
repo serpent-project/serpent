@@ -26,6 +26,10 @@ def between(x, rng):
             return False
     return True
 
+def hexprint(something):
+    chars = [hex(ord(c)) for c in something]
+    print '-'.join(chars)
+
 if __name__ == '__main__':
     print "Testing utils"
     print "true %s" % (between(5, (1, 10)))

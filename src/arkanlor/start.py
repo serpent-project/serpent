@@ -29,6 +29,7 @@ from twisted.internet import reactor
 from arkanlor.uos.protocol import UOS
 from arkanlor.uos.server import ServedClient
 from arkanlor import settings
+from arkanlor.ced.factory import CEDFactory
 
 class ArkFactory(Factory):
     num_connections = None
@@ -60,7 +61,17 @@ if __name__ == '__main__':
         ports = (ports,)
     factory = ArkFactory(boulder)
     for port in ports:
-        print "Establishing Server endpoint at port %s" % port
+        print "Establishing UOS Server endpoint at port %s" % port
+        endpoint = TCP4ServerEndpoint(reactor, port)
+        endpoint.listen(factory)
+
+    ############ CED ###############
+    ports = settings.CED_PORT
+    if not isinstance(ports, list) and not isinstance(ports, tuple):
+        ports = (ports,)
+    factory = CEDFactory(boulder)
+    for port in ports:
+        print "Establishing CentrED Server endpoint at port %s" % port
         endpoint = TCP4ServerEndpoint(reactor, port)
         endpoint.listen(factory)
     # bind console
