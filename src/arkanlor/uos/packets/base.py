@@ -6,12 +6,11 @@
     @see gemuo for a client side only implementation.
     @see packet_io
 """
-from arkanlor.uos.packet_io import BYTE, USHORT, UINT, RAW, \
+from arkanlor.dagrm import BYTE, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN, packet_list, SubPackets
-from arkanlor.uos.packet_io import UOPacket as Packet
+from arkanlor.uos.packet import UOPacket as Packet
 from arkanlor.uos.const import LoginDeniedReason
 P_CLIENT, P_SERVER, P_BOTH, P_EXP = 0, 1, 2, 3
-
 
 #### Universal Packets
 class Dummy(Packet):

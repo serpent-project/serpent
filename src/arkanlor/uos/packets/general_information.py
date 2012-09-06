@@ -19,9 +19,9 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
-from arkanlor.uos.packet_io import BYTE, USHORT, UINT, RAW, \
-    CSTRING, FIXSTRING, IPV4, BOOLEAN, packet_list, SubPackets
-from arkanlor.uos.packet_io import UOPacket, Packet
+from arkanlor.dagrm import BYTE, USHORT, UINT, RAW, \
+    CSTRING, FIXSTRING, IPV4, BOOLEAN, packet_list, SubPackets, Packet
+from arkanlor.uos.packet import UOPacket
 from arkanlor.uos.packets.base import P_CLIENT, P_SERVER, P_BOTH, P_EXP
 
 def AsGI(packet_type, values):

@@ -5,17 +5,13 @@
     
     @see uos packets.
 """
-from arkanlor.uos.packet_io import packet_list, BYTE, USHORT, UINT, RAW, \
-    CSTRING, FIXSTRING, IPV4, BOOLEAN, SBYTE, SubPackets
-from arkanlor.ced.packet_io import CEDPacket as Packet
+from arkanlor.dagrm import packet_list, BYTE, USHORT, UINT, RAW, \
+    CSTRING, FIXSTRING, IPV4, BOOLEAN, SBYTE, SubPackets, ReadWriteDatagram, \
+    WORD, CARDINAL
+from arkanlor.ced.packet import CEDPacket as Packet
 from arkanlor.ced.const import PROTOCOL_VERSION, LoginStates, ServerStates, \
     AccessLevel
-
-# shortint = signed byte
-# word = ushort
-# cardinal = uint
-WORD = USHORT
-CARDINAL = UINT
+from arkanlor.dagrm.extended import DatagramCountLoop
 
 P_CED = 0x5
 
@@ -65,7 +61,7 @@ class ClientDisconnected(CCSubPacket):
 class ClientList(CCSubPacket):
     """
         subpacket of client command packet.
-        lists all clients.
+        lists all (connected) clients.
     """
     __slots__ = Packet.__slots__
     p_id = 0x03
@@ -255,6 +251,125 @@ class LoginResponse(Packet):
                  # account restrictions.
                  ]
 
+def AsAC(packet_type, values):
+    values['subcmd'] = packet_type.p_id
+    return AdminCommand(values)
+
+class ACSubPacket(Packet):
+    __slots__ = Packet.__slots__
+    p_type = 0x03
+
+    def serialize(self):
+        ac = AsAC(self, self.values)
+        return ac.serialize()
+
+    def read_data(self, length):
+        if len(self._data) < length:
+            return '\0' * length
+        x, self._data = self._data[:length], self._data[length:]
+        return x
+
+class FlushServer(ACSubPacket):
+    __slots__ = Packet.__slots__
+    p_id = 0x1
+    p_length = 0
+    _datagram = []
+
+class QuitServer(ACSubPacket):
+    __slots__ = Packet.__slots__
+    p_id = 0x2
+    p_length = 0
+    _datagram = [('message', CSTRING), ]
+
+    def __unicode__(self):
+        return u'Quitting (reason: %s)' % self.values.get('message', None)
+
+class ModifyUser(ACSubPacket):
+    __slots__ = Packet.__slots__
+    p_id = 0x5
+
+class DeleteUser(ACSubPacket):
+    p_id = 0x6
+
+class UserList(ACSubPacket):
+    p_id = 0x7
+
+
+# Region related packet.
+# Helper classes:
+class _Area(Packet):
+    _datagram = [('x1', WORD),
+                 ('y1', WORD),
+                 ('x2', WORD),
+                 ('y2', WORD)]
+
+class _Region(Packet):
+    _datagram = [('name', CSTRING),
+                 ('count', BYTE),
+                 DatagramCountLoop('count', 'areas', _Area)]
+
+class ModifyRegion(ACSubPacket):
+    p_id = 0x8
+    _datagram = ReadWriteDatagram(
+                # read (aka from client)
+                    [('name', CSTRING),
+                     ('count', BYTE),
+                     DatagramCountLoop('count', 'areas', _Area),
+                     ],
+                # write (aka to client)
+                    [],
+                )
+
+class DeleteRegion(ACSubPacket):
+    p_id = 0x9
+    _datagram = ReadWriteDatagram(
+                # read (aka from client)
+                    [('name', CSTRING), ],
+                # write (aka to client)
+                    [],
+                    )
+class RegionList(ACSubPacket):
+    p_id = 0xa
+    _datagram = ReadWriteDatagram(
+                # read (aka from client)
+                    [],
+                # write (aka to client)
+                    [
+                     ('count', BYTE),
+                     DatagramCountLoop('count', 'regions', _Region),
+                     ],
+                                  )
+
+subpackets_admin = SubPackets('subcmd',
+                              FlushServer,
+                              QuitServer,
+                              ModifyUser,
+                              DeleteUser,
+                              UserList,
+                              ModifyRegion,
+                              DeleteRegion,
+                              RegionList,
+                              )
+
+
+class AdminCommand(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0x3
+    p_length = 0
+    _datagram = [('subcmd', BYTE),
+                 subpackets_admin]
+    def _unpack(self):
+        # detect our type
+        p_id = self.values.get('subcmd', None)
+        if not p_id:
+            return self
+        p = subpackets_admin.packets.get(p_id, None)
+        if not p:
+            return self
+        p = p(self.values)
+        p._data = self._data
+        return p
+
 ##############################################################################
 # from 0x4: standard packets.
 
@@ -262,6 +377,7 @@ class Block(Packet):
     __slots__ = Packet.__slots__
     p_id = 0x4
     p_length = 0
+    _datagram = []
 
 class FreeBlock(Packet):
     __slots__ = Packet.__slots__
@@ -355,7 +471,7 @@ class NoOp(Packet):
 server_parsers = packet_list(
                              Compressed,
                              LoginCommand,
-
+                             AdminCommand,
                              Block,
                              FreeBlock,
                              DrawMap,

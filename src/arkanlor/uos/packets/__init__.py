@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from arkanlor.uos.packets.base import P_CLIENT, P_SERVER, P_BOTH, P_EXP
-from arkanlor.uos.packet_io import BYTE, USHORT, UINT, RAW, \
+from arkanlor.dagrm import BYTE, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN, packet_list, SubPackets
 from arkanlor.uos.packets.base import Dummy, NoEncryption, PingMessage
 from arkanlor.uos.packets.general_information import \

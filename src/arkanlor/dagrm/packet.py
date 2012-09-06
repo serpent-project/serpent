@@ -1,64 +1,25 @@
 # -*- coding: utf-8 -*-
+#!/usr/bin/env python
 """
-    PacketIO Library for binary packetformats used in UO Protocol.
-    Packet tries to define a new-style object packet with complete read/write built in.
-    Theoretically this approach should be even optimal,
-    however the creation of a dictionary in the packet still needs a bit of horsepower.
-    
-    The old static approach worked well too, however this packet class allows
-    the definition of a standard datagram, enabling most packets to be defined
-    with _datagram = [ ( identifier, type ), ( 'name', FIXSTRING, 30 ), ... ]
-    
+    Unit Description
+
+@author: g4b
+
+LICENSE AND COPYRIGHT NOTICE:
+
+Copyright (C) 2012 by  Gabor Guzmics, <gab(at)g4b(dot)org>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 """
+from arkanlor.dagrm.const import *
 import struct, string #@UnresolvedImport
-
-BOOLEAN = 0
-BYTE = 1
-USHORT = 2
-UINT = 4
-IPV4 = 5
-SBYTE = 6
-#IPV6 = 6
-FIXSTRING = 30
-CSTRING = 40
-UCSTRING = 41
-PSTRING = 50
-RAW = 255 # read rest of packet. write out directly.
-
-packet_lengths = [
-    0x0068, 0x0005, 0x0007, 0x0000, 0x0002, 0x0005, 0x0005, 0x0007, # 0x00
-    0x000e, 0x0005, 0x0007, 0x0007, 0x0000, 0x0003, 0x0000, 0x003d, # 0x08
-    0x00d7, 0x0000, 0x0000, 0x000a, 0x0006, 0x0009, 0x0001, 0x0000, # 0x10
-    0x0000, 0x0000, 0x0000, 0x0025, 0x0000, 0x0005, 0x0004, 0x0008, # 0x18
-    0x0013, 0x0008, 0x0003, 0x001a, 0x0007, 0x0014, 0x0005, 0x0002, # 0x20
-    0x0005, 0x0001, 0x0005, 0x0002, 0x0002, 0x0011, 0x000f, 0x000a, # 0x28
-    0x0005, 0x0001, 0x0002, 0x0002, 0x000a, 0x028d, 0x0000, 0x0008, # 0x30
-    0x0007, 0x0009, 0x0000, 0x0000, 0x0000, 0x0002, 0x0025, 0x0000, # 0x38
-    0x00c9, 0x0000, 0x0000, 0x0229, 0x02c9, 0x0005, 0x0000, 0x000b, # 0x40
-    0x0049, 0x005d, 0x0005, 0x0009, 0x0000, 0x0000, 0x0006, 0x0002, # 0x48
-    0x0000, 0x0000, 0x0000, 0x0002, 0x000c, 0x0001, 0x000b, 0x006e, # 0x50
-    0x006a, 0x0000, 0x0000, 0x0004, 0x0002, 0x0049, 0x0000, 0x0031, # 0x58
-    0x0005, 0x0009, 0x000f, 0x000d, 0x0001, 0x0004, 0x0000, 0x0015, # 0x60
-    0x0000, 0x0000, 0x0003, 0x0009, 0x0013, 0x0003, 0x000e, 0x0000, # 0x68
-    0x001c, 0x0000, 0x0005, 0x0002, 0x0000, 0x0023, 0x0010, 0x0011, # 0x70
-    0x0000, 0x0009, 0x0000, 0x0002, 0x0000, 0x000d, 0x0002, 0x0000, # 0x78
-    0x003e, 0x0000, 0x0002, 0x0027, 0x0045, 0x0002, 0x0000, 0x0000, # 0x80
-    0x0042, 0x0000, 0x0000, 0x0000, 0x000b, 0x0000, 0x0000, 0x0000, # 0x88
-    0x0013, 0x0041, 0x0000, 0x0063, 0x0000, 0x0009, 0x0000, 0x0002, # 0x90
-    0x0000, 0x001a, 0x0000, 0x0102, 0x0135, 0x0033, 0x0000, 0x0000, # 0x98
-    0x0003, 0x0009, 0x0009, 0x0009, 0x0095, 0x0000, 0x0000, 0x0004, # 0xA0
-    0x0000, 0x0000, 0x0005, 0x0000, 0x0000, 0x0000, 0x0000, 0x000d, # 0xA8
-    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0040, 0x0009, 0x0000, # 0xB0
-    0x0000, 0x0003, 0x0006, 0x0009, 0x0003, 0x0000, 0x0000, 0x0000, # 0xB8
-    0x0024, 0x0000, 0x0000, 0x0000, 0x0006, 0x00cb, 0x0001, 0x0031, # 0xC0
-    0x0002, 0x0006, 0x0006, 0x0007, 0x0000, 0x0001, 0x0000, 0x004e, # 0xC8
-    0x0000, 0x0002, 0x0019, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, # 0xD0
-    0x0000, 0x010C, 0xFFFF, 0xFFFF, 0x0009, 0x0000, 0xFFFF, 0xFFFF, # 0xD8
-    0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xE0
-    0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xE8
-    0xFFFF, 0xFFFF, 0xFFFF, 0x0018, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, # 0xF0
-    0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0x0003, # 0xF8
-]
 
 def packet_list(*packets):
     ret = {}
@@ -66,7 +27,28 @@ def packet_list(*packets):
         ret[packet.p_id] = packet
     return ret
 
-class SubPackets(object):
+class ReadWriteDatagram:
+    def __init__(self, r_d, w_d):
+        self.r_d = r_d
+        self.w_d = w_d
+
+    def get_read_datagram(self):
+        return self.r_d
+    def get_write_datagram(self):
+        return self.w_d
+
+class DatagramManipulator(object):
+    """
+        A datagram manipulator can manipulate the flow of packetreading
+        Mainly it is used for Subpackets.
+    """
+    __slots__ = []
+    def packet_read(self, values, data):
+        return values, data
+    def packet_write(self, values, data):
+        return values, data
+
+class SubPackets(DatagramManipulator):
     __slots__ = ['packets', 'identifier']
     def __init__(self, identifier, *packets):
         self.packets = packet_list(*packets)
@@ -79,7 +61,7 @@ class SubPackets(object):
         """
         # read our identifier
         if not self.identifier:
-            raise Exception('Subpackets without identifier')
+            raise DatagramException('Subpackets without identifier')
         else:
             p_id = values.get(self.identifier, None)
         if not p_id:
@@ -105,7 +87,7 @@ class SubPackets(object):
             returns values, data
         """
         if not self.identifier:
-            raise Exception('Subpackets without identifier')
+            raise DatagramException('Subpackets without identifier')
         else:
             p_id = values.get(self.identifier, None)
         if not p_id:
@@ -126,7 +108,7 @@ class SubPackets(object):
             data = p._data
         return values, data
 
-class Packet(object):
+class DatagramPacket(object):
     # see euclid.py for further optimizations.
     __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values',
                   ]
@@ -161,7 +143,7 @@ class Packet(object):
 
     def read_data(self, length):
         if len(self._data) < length:
-            raise Exception("Packet is too short P_ID: %s, values %s" % (
+            raise DatagramException("Packet is too short P_ID: %s, values %s" % (
                                             hex(self.p_id),
                                             self.values
                                             ))
@@ -180,10 +162,12 @@ class Packet(object):
         return self
 
     def read_datagram(self, datagram, values=None):
+        if isinstance(datagram, ReadWriteDatagram):
+            datagram = datagram.get_read_datagram()
         if values is None:
             values = self.values
         for item in datagram:
-            if isinstance(item, SubPackets):
+            if isinstance(item, DatagramManipulator):
                 # subpacket read
                 values, self._data = item.packet_read(values,
                                                       self._data)
@@ -199,8 +183,12 @@ class Packet(object):
                 values[key] = self.r_sbyte()
             elif t == USHORT:
                 values[key] = self.r_ushort()
+            elif t == SHORT:
+                values[key] = self.r_short()
             elif t == UINT:
                 values[key] = self.r_uint()
+            elif t == INT:
+                values[key] = self.r_int()
             elif t == IPV4:
                 values[key] = self.r_ipv4()
             elif t == FIXSTRING:
@@ -219,13 +207,15 @@ class Packet(object):
                 if l:
                     values[key] = self.read_data(l)
                 else:
-                    raise Exception('Unknown Packet in Datagram')
+                    raise DatagramException('Unknown Packet in Datagram')
 
     def write_datagram(self, datagram, values=None):
+        if isinstance(datagram, ReadWriteDatagram):
+            datagram = datagram.get_write_datagram()
         if values is None:
             values = self.values
         for item in datagram:
-            if isinstance(item, SubPackets):
+            if isinstance(item, DatagramManipulator):
                 # subpacket write.
                 values, self._data = item.packet_write(values, self._data)
                 continue
@@ -251,8 +241,12 @@ class Packet(object):
                     self.w_sbyte(d)
                 elif t == USHORT:
                     self.w_ushort(d)
+                elif t == SHORT:
+                    self.w_short(d)
                 elif t == UINT:
                     self.w_uint(d)
+                elif t == INT:
+                    self.w_int(d)
                 elif t == IPV4:
                     self.w_ipv4(d)
                 elif t == FIXSTRING:
@@ -266,8 +260,8 @@ class Packet(object):
                 elif t == RAW:
                     self.write_data(d)
                 else:
-                    raise Exception('Unknown Packet in Datagram')
-            except Exception, e:
+                    raise DatagramException('Unknown Packet in Datagram')
+            except DatagramException, e:
                 print "="*80
                 print "datagram write exception"
                 print e
@@ -281,6 +275,10 @@ class Packet(object):
         return self
 
     def unpack(self):
+        try:
+            self._datagram
+        except AttributeError, e:
+            raise DatagramException('Packet %s has no datagram.' % self)
         if self._datagram:
             self.read_datagram(self._datagram)
         return self._unpack()
@@ -303,23 +301,31 @@ class Packet(object):
             data = self._data
         if self.p_length == 0:
             if len(data) > 0xf000:
-                raise Exception, "Packet too large"
+                raise DatagramException, "Packet too large"
             data = data[0] + struct.pack('%sH' % self.flow, len(data) + 2) + data[1:]
         else:
             if len(data) != self.p_length:
                 print 'pid: %s, expected: %s, got: %s, data: %s' % (
                                         hex(self.p_id), self.p_length,
                                         len(data), repr(data))
-                raise Exception, "Invalid packet length"
+                raise DatagramException, "Invalid packet length"
         return data
 
     def r_uint(self):
         """ 4 bytes unsigned integer """
         return struct.unpack('%sI' % self.flow, self.read_data(4))[0]
 
+    def r_int(self):
+        """ 4 bytes signed integer """
+        return struct.unpack('%si' % self.flow, self.read_data(4))[0]
+
     def r_ushort(self):
         """ 2 bytes unsigned integer """
         return struct.unpack('%sH' % self.flow, self.read_data(2))[0]
+
+    def r_short(self):
+        """ 2 bytes signed integer """
+        return struct.unpack('%sh' % self.flow, self.read_data(2))[0]
 
     def r_byte(self):
         """ 1 byte """
@@ -355,18 +361,21 @@ class Packet(object):
         return self.r_fixstring(self.r_byte())
 
     def r_ipv4(self):
-        return string.join(map(str, struct.unpack('4B', self.read_data(4))), '.')
+        return string.join(map(str, struct.unpack('%s4B' % self.flow, self.read_data(4))), '.')
 
     ### Writing
 
     def w_uint(self, x):
         self.write_data(struct.pack('%sI' % self.flow, x))
 
+    def w_int(self, x):
+        self.write_data(struct.pack('%si' % self.flow, x))
+
     def w_ushort(self, x):
         assert x >= 0 and x < 65536
         self.write_data(struct.pack('%sH' % self.flow, x))
 
-    def w_sshort(self, x):
+    def w_short(self, x):
         assert x >= -32768 and x < 32768
         self.write_data(struct.pack('%sh' % self.flow, x))
 
@@ -408,19 +417,8 @@ class Packet(object):
 
     def w_ipv4(self, x):
         if isinstance(x, basestring):
-            self.write_data(struct.pack('4B', *map(int, x.split('.'))))
+            self.write_data(struct.pack('%s4B' % self.flow, *map(int, x.split('.'))))
         elif isinstance(x, list):
-            self.write_data(struct.pack('4B', *x))
+            self.write_data(struct.pack('%s4B' % self.flow, *x))
         else:
-            raise Exception, "Ipv4 invalid?"
-
-class UOPacket(Packet):
-    # see euclid.py for further optimizations.
-    __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values' ]
-    p_id = None
-    p_length = None
-
-    def __init__(self, packet_or_values=None):
-        super(UOPacket, self).__init__(packet_or_values)
-        if self.p_id:
-            self.p_length = packet_lengths[self.p_id]
+            raise DatagramException, "Ipv4 invalid?"

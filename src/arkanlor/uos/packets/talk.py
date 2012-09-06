@@ -18,10 +18,11 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
-from arkanlor.uos.packet_io import BYTE, USHORT, UINT, RAW, \
+from arkanlor.dagrm import BYTE, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN, packet_list, SubPackets, UCSTRING
-from arkanlor.uos.packet_io import UOPacket as Packet
+from arkanlor.uos.packet import UOPacket as Packet
 from arkanlor.uos.packets.base import P_CLIENT, P_SERVER, P_BOTH, P_EXP
+from arkanlor.dagrm.list12bit import read_12bitlist, write_12bitlist
 
 class TalkRequest(Packet):
     p_id = 0x03
@@ -36,7 +37,42 @@ class TalkRequest(Packet):
         return u'Talk: <%s> %s' % (hex(self.values.get('ttype')),
                              self.values.get('message'),)
 
+class UnicodeTalkRequestSpeechMulList(SubPackets):
+    """
+        datagram manipulation to read and write the 12 bit lists for speech.mul
+        references.
+        
+        if no other packet than UnicodeTalkRequest needs this, it may be wise
+        to include a CSTRING / UCSTRING message handling into it.
+    """
+    __slots__ = ['items', 'type' ] # contains the node name it saves or restores speechmuldata from.
+    def __init__(self, items, ttype):
+        self.items = items
+        self.type = ttype
+
+    def packet_read(self, values, data):
+        # we read the 12 bit list into key self.items, if type & 0xc0
+        value_type = values.get(self.type, 0)
+        if value_type & 0xc0:
+            values[self.items], data = read_12bitlist(data)
+        return values, data
+
+    def packet_write(self, values, data):
+        # we write items into the data stream, if it has length
+        # note that packet type has already been written.
+        # we do not append the list if type is not in order.
+        items = values.get(self.items, [])
+        value_type = values.get(self.type, 0)
+        if value_type & 0xc0:
+            data = write_12bitlist(items, data)
+        return values, data
+
 class UnicodeTalkRequest(Packet):
+    # note this packet can be highly complex,
+    # the condition is ttype & 0xc0 -> message gets a 12 bit list prepended.
+    # first 12 bits: length of 12 bit list
+    # then length * 12 bits -> keywords
+    # (and +4 if number is even, to fill up the bytes)
     p_id = 0xad
     p_type = P_CLIENT
     _datagram = [('ttype', BYTE),
@@ -44,24 +80,11 @@ class UnicodeTalkRequest(Packet):
                  ('font', USHORT),
                  ('lang', FIXSTRING, 3), # 4 bytes.
                  (0, BYTE), # terminator
+                 UnicodeTalkRequestSpeechMulList('speech_list', 'ttype'),
+                 # note: message becomes cstring if speechmul present?
+                 # further investigation needed.
                  ('message', UCSTRING)
                  ]
-    # note this packet can be highly complex,
-    # the condition is ttype & 0xc0 -> message gets a 12 bit list prepended.
-    # first 12 bits: length of 12 bit list
-    # then length * 12 bits -> keywords
-    # (and +4 if number is even, to fill up the bytes)
-
-
-#### Client Sent Packets
-# these packets need packet parsing classes for the server.
-
-
-#### Server Sent Packets
-# these packets need to get packetwriters for the server.
-
-
-
 
 class SendSpeech(Packet):
     __slots__ = Packet.__slots__

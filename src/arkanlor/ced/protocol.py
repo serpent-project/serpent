@@ -60,7 +60,7 @@ class CED(Protocol):
             self.on_packet(packet)
 
     def send(self, data):
-        #hexprint(data)
+        hexprint(data)
         print self.transport.write(data)
 
     def batch_send(self, datalist):
@@ -84,7 +84,7 @@ class CED(Protocol):
         l = p.p_length
         if l == 0:
             if len(self._input) < 5: return None
-            l = struct.unpack('%sI' % p.flow, self._input[1:5])[0]
+            l = struct.unpack('<I', self._input[1:5])[0]
             #if l < 3 or l > 0x8000:
             #    raise CEDProtocolException("Malformed packet %s" % hex(cmd))
             if len(self._input) < l: return None

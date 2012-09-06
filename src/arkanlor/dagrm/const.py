@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-'''
+#!/usr/bin/env python
+"""
+    Unit Description
 
-    Data Structures.
+@author: g4b
+
+LICENSE AND COPYRIGHT NOTICE:
 
 Copyright (C) 2012 by  Gabor Guzmics, <gab(at)g4b(dot)org>
 
@@ -13,12 +17,29 @@ This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-'''
+"""
 
-from fds import fds
+# 1 byte types
+BOOLEAN = 0x00
+BYTE = 0x01
+SBYTE = 0x02
+# 2 byte types
+SHORT = 0x03
+USHORT = 0x04
+WORD = USHORT
+# 4 byte types
+UINT = 0x05
+INT = 0x06
+CARDINAL = UINT # same thing.
+IPV4 = 0x15
+#IPV6 
+# variable types
+FIXSTRING = 0xa0
+CSTRING = 0xa1
+PSTRING = 0xa2
+UCSTRING = 0xb1
+SPEECHSTRING = 0xc0 # 
+RAW = 0xff # read rest of packet. write out directly.
 
-# Create Fake Data Structures for our later datanodes.
-# these are just dicts, that allow easier access.
-
-Server = fds(['index', 'name'])
-Character = fds(['name', ])
+class DatagramException(Exception):
+    pass

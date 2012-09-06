@@ -6,6 +6,32 @@ from django.contrib.auth.models import User
 class WorldMap(models.Model):
     name = models.CharField(max_length=100)
 
+class WorldMapRegion(models.Model):
+    owner = models.ForeignKey(User, related_name='user_regions', null=True, blank=True)
+    map = models.ForeignKey(WorldMap, related_name='regions')
+    name = models.CharField(max_length=100)
+    public = models.BooleanField(default=False)
+    access_level = models.IntegerField(default=0)
+    def packet_info(self):
+        areas = [ area.packet_info() for area in self.areas.all() ]
+        return {'name': self.name,
+                'count': len(areas),
+                'areas': areas,
+                }
+
+class WorldMapArea(models.Model):
+    region = models.ForeignKey(WorldMapRegion, related_name='areas')
+    x1 = models.IntegerField()
+    y1 = models.IntegerField()
+    x2 = models.IntegerField()
+    y2 = models.IntegerField()
+    def packet_info(self):
+        return {'x1': self.x1,
+                'y1': self.y1,
+                'x2': self.x2,
+                'y2': self.y2,
+                }
+
 class WorldObjectType(models.Model):
     name = models.CharField(max_length=200, null=True)
     default_graphic = models.IntegerField()

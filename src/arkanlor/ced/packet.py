@@ -18,7 +18,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
-from arkanlor.uos.packet_io import Packet
+from arkanlor.dagrm import Packet
 import struct, string #@UnresolvedImport
 
 class CEDPacket(Packet):

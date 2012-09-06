@@ -20,7 +20,7 @@ GNU General Public License for more details.
 """
 from twisted.internet.protocol import Protocol
 import struct, re  #@UnresolvedImport
-from arkanlor.uos.packet_io import packet_lengths
+from arkanlor.uos.packet import packet_lengths
 from django.http import HttpResponse, HttpResponseNotAllowed, \
     HttpResponseForbidden
 from django.test.client import RequestFactory, ClientHandler, Client

@@ -2,7 +2,7 @@
 
 from arkanlor.uos.engine import Engine
 from arkanlor.ced import packets as p
-from arkanlor.boulder.models import PlayerMobile
+from arkanlor.boulder.models import PlayerMobile, WorldMapRegion
 from arkanlor import settings
 from arkanlor.ced.const import LoginStates, AccessLevel, ServerStates
 
@@ -15,13 +15,18 @@ class CedLogin(Engine):
 
     def on_packet(self, packet):
         if isinstance(packet, p.LoginRequest):
-            print "Login Request from CED %s" % packet
+            print "Login Request from CED %s" % packet.values.get('username', None)
             # authenticate.
             self.account = self._ctrl._world.authenticate(
                                     packet.values.get('username', None),
                                     packet.values.get('password', None))
             if self.account:
-                self._ctrl.send(p.LoginResponse({'state': LoginStates.OK }))
+                self._ctrl.send(p.LoginResponse({'state': LoginStates.OK,
+                                        'access_level': AccessLevel.Admin \
+                                             if self.account.is_superuser\
+                                             else AccessLevel.View ,
+                                         'map_width': 64 * 64,
+                                         'map_height': 64 * 64 }))
                 # also send client list with compressed packet.
                 # send client connected to all ced clients.
                 # send clientpospacket to clients lastpos.
@@ -33,8 +38,19 @@ class CedLogin(Engine):
                     # initialize other engines.
                     engine(self._ctrl)
                 self._ctrl.signal('on_logging_in', account=self.account, char=None)
-                return self._success()
+                #return self._success()
             else:
                 #self._ctrl.send(p.LoginDeclined())
                 self.send(p.LoginResponse({'state': LoginStates.InvalidPassword }))
                 return
+        # Region Management
+        if isinstance(packet, p.RegionList):
+            # get our regions
+            regions_db = WorldMapRegion.objects.filter(owner__isnull=True,
+                                          owner=self.account)
+
+            regions = {'count': regions_db.count(),
+                       'regions': []}
+            for region in regions_db:
+                regions['regions'] += [ region.packet_info() ]
+            self.send(p.RegionList(regions))
