@@ -55,8 +55,8 @@ TEMPLATE_LOADERS = (
 #     'django.template.loaders.eggs.Loader',
 )
 
-UOS_PORT = 2597
-CED_PORT = 2596
+UOS_PORT = 2598, 2599
+CED_PORT = 2597
 ROOT_URLCONF = 'arkanlor.urls'
 
 VERSIONSTRING = 'Arkanlor v0.1'

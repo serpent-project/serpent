@@ -7,5 +7,5 @@
 """
 from const import *
 from packet import DatagramManipulator, SubPackets, ReadWriteDatagram
-from packet import DatagramPacket as Packet
+from packet import Packet
 from packet import packet_list

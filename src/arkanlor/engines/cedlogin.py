@@ -5,6 +5,7 @@ from arkanlor.ced import packets as p
 from arkanlor.boulder.models import PlayerMobile, WorldMapRegion
 from arkanlor import settings
 from arkanlor.ced.const import LoginStates, AccessLevel, ServerStates
+from arkanlor.engines import cedcontrol
 
 GAME_ENGINES = []
 
@@ -21,10 +22,15 @@ class CedLogin(Engine):
                                     packet.values.get('username', None),
                                     packet.values.get('password', None))
             if self.account:
+                if self.account.is_superuser:
+                    access_level = AccessLevel.Admin
+                elif self.account.is_active:
+                    access_level = AccessLevel.Normal
+                else:
+                    access_level = AccessLevel.View
                 self._ctrl.send(p.LoginResponse({'state': LoginStates.OK,
-                                        'access_level': AccessLevel.Admin \
-                                             if self.account.is_superuser\
-                                             else AccessLevel.View ,
+                                        'access_level': access_level ,
+                                        # @todo: boulder.boundaries
                                          'map_width': 64 * 64,
                                          'map_height': 64 * 64 }))
                 # also send client list with compressed packet.
@@ -33,24 +39,14 @@ class CedLogin(Engine):
                 # this is already a successful login.
 
                 # map = mapclient.MapClient(self._ctrl)
-                # cedcontrol.CedControl(self._ctrl, map)
+                cedcontrol.CedControl(self._ctrl)
                 for engine in GAME_ENGINES:
                     # initialize other engines.
                     engine(self._ctrl)
                 self._ctrl.signal('on_logging_in', account=self.account, char=None)
-                #return self._success()
+                print "CED Account %s logged in" % self.account.username
+                return self._success()
             else:
-                #self._ctrl.send(p.LoginDeclined())
                 self.send(p.LoginResponse({'state': LoginStates.InvalidPassword }))
                 return
-        # Region Management
-        if isinstance(packet, p.RegionList):
-            # get our regions
-            regions_db = WorldMapRegion.objects.filter(owner__isnull=True,
-                                          owner=self.account)
 
-            regions = {'count': regions_db.count(),
-                       'regions': []}
-            for region in regions_db:
-                regions['regions'] += [ region.packet_info() ]
-            self.send(p.RegionList(regions))

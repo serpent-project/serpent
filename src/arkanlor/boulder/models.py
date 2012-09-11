@@ -7,7 +7,7 @@ class WorldMap(models.Model):
     name = models.CharField(max_length=100)
 
 class WorldMapRegion(models.Model):
-    owner = models.ForeignKey(User, related_name='user_regions', null=True, blank=True)
+    owners = models.ManyToManyField(User, related_name='regions', null=True, blank=True)
     map = models.ForeignKey(WorldMap, related_name='regions')
     name = models.CharField(max_length=100)
     public = models.BooleanField(default=False)
@@ -18,6 +18,16 @@ class WorldMapRegion(models.Model):
                 'count': len(areas),
                 'areas': areas,
                 }
+    def add_area(self, area):
+        return WorldMapArea(region=self,
+                     x1=area.get('x1'),
+                     y1=area.get('y1'),
+                     x2=area.get('x2'),
+                     y2=area.get('y2'),
+                     ).save()
+    def clear_areas(self):
+        if self.areas.count():
+            self.areas.all().delete()
 
 class WorldMapArea(models.Model):
     region = models.ForeignKey(WorldMapRegion, related_name='areas')

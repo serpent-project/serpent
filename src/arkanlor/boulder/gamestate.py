@@ -53,6 +53,9 @@ class BoulderState(object):
         self.free_id = 0x0222
         self.worldmap = models.WorldMap.objects.get(name='default')
 
+    def get_map(self):
+        return self.worldmap
+
     def create_mobile_for_mobile(self, mobile, client):
         """
             * sends appropriate script signal

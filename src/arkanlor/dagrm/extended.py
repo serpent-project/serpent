@@ -21,13 +21,79 @@ GNU General Public License for more details.
 
 from arkanlor.dagrm.packet import DatagramManipulator
 
+class DatagramPacket(DatagramManipulator):
+    # writes and reads instance
+    __slots__ = ['key', 'dtype']
+    def __init__(self, datagram_entry):
+        self.key, self.dtype = datagram_entry
+    def packet_read(self, values, data, instance=None):
+        if instance:
+            instance.read_datagram([(self.key, self.dtype)], values)
+            return values, instance._data
+        return values, data
+    def packet_write(self, values, data, instance=None):
+        if instance:
+            instance.write_datagram([(self.key, self.dtype)], values)
+            return values, instance._data
+        return values, data
+
+class DatagramSub(DatagramManipulator):
+    # writes and reads instance
+    __slots__ = ['datagram']
+    def __init__(self, datagram):
+        self.datagram = datagram
+    def packet_read(self, values, data, instance=None):
+        if instance:
+            instance.read_datagram(self.datagram, values)
+            return values, instance._data
+        return values, data
+    def packet_write(self, values, data, instance=None):
+        if instance:
+            instance.write_datagram(self.datagram, values)
+            return values, instance._data
+        return values, data
+
+
+class DatagramIf(DatagramManipulator):
+    """
+        executes another datagrammanipulator if comparison of value in key
+        returns true.
+        executes the else_manipulator if given otherwise.
+    """
+    def __init__(self, key, comparison, when_true,
+                 else_do=None):
+        self.key = key
+        self.comparison = comparison # e.g. lambda x:
+        self.sub_manipulator = when_true
+        self.else_manipulator = else_do
+
+    def packet_read(self, values, data, instance=None):
+        value = values.get(self.key, None)
+        if value is not None:
+            if self.comparison(value):
+                return self.sub_manipulator.packet_read(values, data, instance)
+            else:
+                if self.else_manipulator is not None:
+                    return self.sub_manipulator.packet_read(values, data, instance)
+        return values, data
+
+    def packet_write(self, values, data, instance=None):
+        value = values.get(self.key, None)
+        if value is not None:
+            if self.comparison(value):
+                return self.sub_manipulator.packet_write(values, data, instance)
+            else:
+                if self.else_manipulator is not None:
+                    return self.sub_manipulator.packet_write(values, data, instance)
+        return values, data
+
 class DatagramCountLoop(DatagramManipulator):
     __slots__ = ['count', 'items', 'packets']
     def __init__(self, count, items, Packet):
         self.packets = [Packet]
         self.count = count
         self.items = items
-    def packet_read(self, values, data):
+    def packet_read(self, values, data, instance=None):
         # we use a packet to eat the data count times and copy the values into items
         items = values.get(self.items, [])
         count = values.get(self.count, len(items))
@@ -41,7 +107,7 @@ class DatagramCountLoop(DatagramManipulator):
         values[self.items] = items
         return values, data
 
-    def packet_write(self, values, data):
+    def packet_write(self, values, data, instance=None):
         # we use a packet to serialize len(items) times giving items[n] as values.
         # 
         items = values.get(self.items, [])

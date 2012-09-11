@@ -41,11 +41,14 @@ class DatagramManipulator(object):
     """
         A datagram manipulator can manipulate the flow of packetreading
         Mainly it is used for Subpackets.
+         
     """
     __slots__ = []
-    def packet_read(self, values, data):
+    def packet_read(self, values, data, instance=None):
+        # only use instance to read and write data
         return values, data
-    def packet_write(self, values, data):
+    def packet_write(self, values, data, instance=None):
+        # only use instance to read and write data
         return values, data
 
 class SubPackets(DatagramManipulator):
@@ -54,7 +57,7 @@ class SubPackets(DatagramManipulator):
         self.packets = packet_list(*packets)
         self.identifier = identifier
 
-    def packet_read(self, values, data):
+    def packet_read(self, values, data, instance=None):
         """
             reads a subpacket with p_id from data into values.
             returns values, data
@@ -81,7 +84,7 @@ class SubPackets(DatagramManipulator):
             data = p._data
         return values, data
 
-    def packet_write(self, values, data):
+    def packet_write(self, values, data, instance=None):
         """
             writes a subpacket with p_id from values into data.
             returns values, data
@@ -108,7 +111,7 @@ class SubPackets(DatagramManipulator):
             data = p._data
         return values, data
 
-class DatagramPacket(object):
+class Packet(object):
     # see euclid.py for further optimizations.
     __slots__ = [ 'p_id', 'p_type', 'p_length', '_datagram', '_data', 'values',
                   ]
@@ -170,7 +173,8 @@ class DatagramPacket(object):
             if isinstance(item, DatagramManipulator):
                 # subpacket read
                 values, self._data = item.packet_read(values,
-                                                      self._data)
+                                                      self._data,
+                                                      self)
                 continue
             l, key, t, item = None, item[0], item[1], item[2:]
             if item: # optional argument length
@@ -217,7 +221,8 @@ class DatagramPacket(object):
         for item in datagram:
             if isinstance(item, DatagramManipulator):
                 # subpacket write.
-                values, self._data = item.packet_write(values, self._data)
+                values, self._data = item.packet_write(values, self._data,
+                                                       self)
                 continue
             _d, l, key, t, item = None, None, item[0], item[1], item[2:]
             if item: # optional argument length
@@ -402,6 +407,7 @@ class DatagramPacket(object):
         self.write_data('\0' * (length - len(x)))
 
     def w_cstring(self, x):
+        x = str(x)
         self.write_data(x)
         self.w_byte(0)
 

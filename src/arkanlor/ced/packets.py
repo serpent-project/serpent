@@ -10,8 +10,10 @@ from arkanlor.dagrm import packet_list, BYTE, USHORT, UINT, RAW, \
     WORD, CARDINAL
 from arkanlor.ced.packet import CEDPacket as Packet
 from arkanlor.ced.const import PROTOCOL_VERSION, LoginStates, ServerStates, \
-    AccessLevel
-from arkanlor.dagrm.extended import DatagramCountLoop
+    AccessLevel, ModifyRegionStatus, DeleteRegionStatus, DeleteUserStatus, \
+    ModifyUserStatus
+from arkanlor.dagrm.extended import DatagramCountLoop, DatagramIf, \
+    DatagramPacket, DatagramSub
 
 P_CED = 0x5
 
@@ -284,17 +286,6 @@ class QuitServer(ACSubPacket):
     def __unicode__(self):
         return u'Quitting (reason: %s)' % self.values.get('message', None)
 
-class ModifyUser(ACSubPacket):
-    __slots__ = Packet.__slots__
-    p_id = 0x5
-
-class DeleteUser(ACSubPacket):
-    p_id = 0x6
-
-class UserList(ACSubPacket):
-    p_id = 0x7
-
-
 # Region related packet.
 # Helper classes:
 class _Area(Packet):
@@ -317,8 +308,17 @@ class ModifyRegion(ACSubPacket):
                      DatagramCountLoop('count', 'areas', _Area),
                      ],
                 # write (aka to client)
-                    [],
-                )
+                    [('status', BYTE),
+                     ('name', CSTRING),
+                     DatagramIf('status',
+                                lambda x: x in [ModifyRegionStatus.Added,
+                                                ModifyRegionStatus.Modified],
+                                when_true=DatagramSub([
+                                 ('count', BYTE),
+                                 DatagramCountLoop('count', 'areas', _Area),
+                                ]),
+                                ),
+                     ])
 
 class DeleteRegion(ACSubPacket):
     p_id = 0x9
@@ -326,8 +326,9 @@ class DeleteRegion(ACSubPacket):
                 # read (aka from client)
                     [('name', CSTRING), ],
                 # write (aka to client)
-                    [],
-                    )
+                    [('status', BYTE, None, DeleteRegionStatus.NotFound),
+                     ('name', CSTRING)],
+                )
 class RegionList(ACSubPacket):
     p_id = 0xa
     _datagram = ReadWriteDatagram(
@@ -338,7 +339,62 @@ class RegionList(ACSubPacket):
                      ('count', BYTE),
                      DatagramCountLoop('count', 'regions', _Region),
                      ],
-                                  )
+                )
+#####
+# User Management.
+
+class _RegionName(Packet):
+    _datagram = [('name', CSTRING), ]
+
+class _User(Packet):
+    _datagram = [('name', CSTRING),
+                 ('access_level', BYTE, None, AccessLevel.NoAccess),
+                 ('count', BYTE),
+                 DatagramCountLoop('count', 'regions', _RegionName)
+                 ]
+
+class ModifyUser(ACSubPacket):
+    # highly doubtful, that i am going to use this for more than setting your
+    # own password or modifying regions until ced account settings are separated.
+    __slots__ = Packet.__slots__
+    p_id = 0x5
+    _datagram = ReadWriteDatagram(
+                [('username', CSTRING),
+                 ('password', CSTRING),
+                 ('access_level', BYTE),
+                 ('count', BYTE),
+                 DatagramCountLoop('count', 'regions', _RegionName)
+                 ],
+                [('status', BYTE),
+                 ('name', CSTRING),
+                 DatagramIf('status',
+                                lambda x: x in [ModifyUserStatus.Added,
+                                                ModifyUserStatus.Modified],
+                                when_true=DatagramSub([
+                                  ('access_level', BYTE),
+                                  ('count', BYTE),
+                                  DatagramCountLoop('count', 'regions', _RegionName),
+                                ]),
+                                ),
+                 ]
+                )
+
+class DeleteUser(ACSubPacket):
+    p_id = 0x6
+    _datagram = ReadWriteDatagram(
+                [('name', CSTRING)],
+                [('status', BYTE, None, DeleteUserStatus.NotFound),
+                 ('name', CSTRING)])
+
+class UserList(ACSubPacket):
+    p_id = 0x7
+    _datagram = ReadWriteDatagram(
+                [],
+                [('count', WORD), #of accounts.
+                 DatagramCountLoop('count', 'users', _User)
+                 ])
+
+
 
 subpackets_admin = SubPackets('subcmd',
                               FlushServer,

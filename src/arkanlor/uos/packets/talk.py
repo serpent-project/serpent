@@ -23,6 +23,7 @@ from arkanlor.dagrm import BYTE, USHORT, UINT, RAW, \
 from arkanlor.uos.packet import UOPacket as Packet
 from arkanlor.uos.packets.base import P_CLIENT, P_SERVER, P_BOTH, P_EXP
 from arkanlor.dagrm.list12bit import read_12bitlist, write_12bitlist
+from arkanlor.dagrm.extended import DatagramIf, DatagramPacket
 
 class TalkRequest(Packet):
     p_id = 0x03
@@ -50,14 +51,14 @@ class UnicodeTalkRequestSpeechMulList(SubPackets):
         self.items = items
         self.type = ttype
 
-    def packet_read(self, values, data):
+    def packet_read(self, values, data, instance=None):
         # we read the 12 bit list into key self.items, if type & 0xc0
         value_type = values.get(self.type, 0)
         if value_type & 0xc0:
             values[self.items], data = read_12bitlist(data)
         return values, data
 
-    def packet_write(self, values, data):
+    def packet_write(self, values, data, instance=None):
         # we write items into the data stream, if it has length
         # note that packet type has already been written.
         # we do not append the list if type is not in order.
@@ -75,7 +76,7 @@ class UnicodeTalkRequest(Packet):
     # (and +4 if number is even, to fill up the bytes)
     p_id = 0xad
     p_type = P_CLIENT
-    _datagram = [('ttype', BYTE),
+    _datagram = [('ttype', BYTE, None, 0x0),
                  ('color', USHORT),
                  ('font', USHORT),
                  ('lang', FIXSTRING, 3), # 4 bytes.
@@ -83,7 +84,10 @@ class UnicodeTalkRequest(Packet):
                  UnicodeTalkRequestSpeechMulList('speech_list', 'ttype'),
                  # note: message becomes cstring if speechmul present?
                  # further investigation needed.
-                 ('message', UCSTRING)
+                 DatagramIf('ttype', lambda x: x & 0x0c,
+                            when_true=DatagramPacket(('message', CSTRING)),
+                            else_do=DatagramPacket(('message', UCSTRING)),
+                            )
                  ]
 
 class SendSpeech(Packet):

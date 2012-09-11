@@ -34,6 +34,7 @@ class DeleteUserStatus:
 class ModifyRegionStatus:
     Added = 0
     Modified = 1
+    NoOp = 2 # addition.
 
 class DeleteRegionStatus:
     NotFound = 0
