@@ -20,6 +20,7 @@ GNU General Public License for more details.
 """
 from arkanlor.dagrm import Packet
 import struct, string #@UnresolvedImport
+from arkanlor.dagrm.packet import PacketReader
 
 class CEDPacket(Packet):
     __slots__ = Packet.__slots__
@@ -42,3 +43,11 @@ class CEDPacket(Packet):
                                         len(data), repr(data))
                 raise Exception, "Invalid packet length"
         return data
+
+class CEDPacketReader(PacketReader):
+    __slots__ = PacketReader.__slots__
+    minimal_packet_size = 5 # byte + uint
+    maximal_packet_size = None
+    dataflow = '<' # intel
+    lengthtype = 'I' # uint
+

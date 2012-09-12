@@ -11,6 +11,7 @@
     
 """
 from arkanlor.dagrm import Packet
+from arkanlor.dagrm.packet import PacketReader
 
 packet_lengths = [
     0x0068, 0x0005, 0x0007, 0x0000, 0x0002, 0x0005, 0x0005, 0x0007, # 0x00
@@ -57,3 +58,20 @@ class UOPacket(Packet):
         super(UOPacket, self).__init__(packet_or_values)
         if self.p_id:
             self.p_length = packet_lengths[self.p_id]
+
+class UOPacketReader(PacketReader):
+    __slots__ = PacketReader.__slots__
+    minimal_packet_size = 3 # byte + ushort len
+    maximal_packet_size = 0x8000
+    dataflow = '>' # ux
+    lengthtype = 'H' # ushort
+
+    class UnsupportedPacketException(PacketReader.MalformedPacketException):
+        pass
+
+    def check_length(self, cmd, length=None):
+        if length is None:
+            length = packet_lengths[cmd]
+        if length == 0xffff:
+            raise UOPacketReader.UnsupportedPacketException("Unsupported packet %s" % hex(cmd))
+        return length

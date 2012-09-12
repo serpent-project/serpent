@@ -3,6 +3,7 @@ from arkanlor.uos import packets as p
 from arkanlor.engines.log import LogEngine
 from arkanlor.engines.login import Login
 from arkanlor.engines.ping import Ping
+from arkanlor.dagrm.packet import PacketReader
 
 class ServedClient:
     def __init__(self, protocol, world=None): #
@@ -38,13 +39,12 @@ class ServedClient:
                     break
 
     def _handle_packet(self, packet):
-        if packet[0] in p.server_parsers:
-            packet = p.server_parsers[packet[0]](packet[1])
-            packet = packet.unpack()
+        try:
+            packet = p.packet_reader.init_packet(packet[0], packet[1])
             #print "< %s" % packet
             self.signal('on_packet', packet)
-        else:
-            print "Packet unknown:", hex(packet[0])
+        except PacketReader.UnknownPacketException:
+            print "Packet unknown", hex(packet[0])
 
     def send(self, data):
         if not isinstance(data, basestring):

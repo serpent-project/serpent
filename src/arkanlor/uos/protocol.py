@@ -24,6 +24,7 @@ from arkanlor.uos.packet import packet_lengths
 from django.http import HttpResponse, HttpResponseNotAllowed, \
     HttpResponseForbidden
 from django.test.client import RequestFactory, ClientHandler, Client
+from arkanlor.uos.packets import packet_reader
 
 class UOProtocolException(Exception):
     pass
@@ -97,8 +98,9 @@ class UOS(Protocol):
             self.initialized = True
         self._input += data
         while True:
-            packet = self._packet_from_buffer()
-            if packet is None: break
+            data = packet_reader.read_from_buffer(self._input)
+            if data is None: break
+            self._input, packet = data[0], data[1:]
             self.on_packet(packet)
 
     def send(self, data):
@@ -113,21 +115,3 @@ class UOS(Protocol):
     def on_packet(self, packet):
         self.handler(packet)
 
-    def _packet_from_buffer(self):
-        if self._input == '':
-            return None
-        cmd = ord(self._input[0])
-        l = packet_lengths[cmd]
-        if l == 0xffff:
-            raise UOProtocolException("Unsupported packet %s" % hex(cmd))
-        if l == 0:
-            if len(self._input) < 3: return None
-            l = struct.unpack('>H', self._input[1:3])[0]
-            if l < 3 or l > 0x8000:
-                raise UOProtocolException("Malformed packet %s" % hex(cmd))
-            if len(self._input) < l: return None
-            x, self._input = self._input[3:l], self._input[l:]
-        else:
-            if len(self._input) < l: return None
-            x, self._input = self._input[1:l], self._input[l:]
-        return (cmd, x)

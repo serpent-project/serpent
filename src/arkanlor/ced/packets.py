@@ -8,12 +8,13 @@
 from arkanlor.dagrm import packet_list, BYTE, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN, SBYTE, SubPackets, ReadWriteDatagram, \
     WORD, CARDINAL
-from arkanlor.ced.packet import CEDPacket as Packet
+from arkanlor.ced.packet import CEDPacket as Packet, CEDPacketReader
 from arkanlor.ced.const import PROTOCOL_VERSION, LoginStates, ServerStates, \
     AccessLevel, ModifyRegionStatus, DeleteRegionStatus, DeleteUserStatus, \
     ModifyUserStatus
 from arkanlor.dagrm.extended import DatagramCountLoop, DatagramIf, \
     DatagramPacket, DatagramSub
+import zlib
 
 P_CED = 0x5
 
@@ -163,9 +164,30 @@ class ClientCommand(Packet):
 # 0x1 : compressed packets.
 
 class Compressed(Packet):
-    __slots__ = Packet.__slots__
+    __slots__ = Packet.__slots__ + ['subpacket']
     p_id = 0x1
     p_length = 0
+    subpacket = None
+    _datagram = []
+
+    def set_initial_arg(self, arg):
+        # we presume, the subpacket is the value
+        if isinstance(arg, Packet):
+            self.subpacket = arg
+
+    def _serialize(self):
+        # we serialize our subpacket and zlib it.
+        pdata = self.subpacket.serialize()
+        self._data += zlib.compress(pdata, 9)
+
+    def _unpack(self):
+        pdata = zlib.decompress(self._data)
+        data = packet_reader.read_from_buffer(pdata)
+        if data is not None:
+            return packet_reader.init_packet(data[1], data[2])
+        return self
+
+
 
 ##############################################################################
 # Login Command Subpackets.
@@ -542,3 +564,5 @@ server_parsers = packet_list(
                              RequestRadar,
                              NoOp,
                              )
+
+packet_reader = CEDPacketReader(server_parsers)

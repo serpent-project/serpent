@@ -2,6 +2,7 @@
 from arkanlor.ced import packets as p
 from arkanlor.engines.log import LogEngine
 from arkanlor.engines.cedlogin import CedLogin
+from arkanlor.dagrm.packet import PacketReader
 
 class ServedClientCED:
     def __init__(self, protocol, world=None): #
@@ -37,13 +38,12 @@ class ServedClientCED:
                     break
 
     def _handle_packet(self, packet):
-        if packet[0] in p.server_parsers:
-            packet = p.server_parsers[packet[0]](packet[1])
-            packet = packet.unpack()
+        try:
+            packet = p.packet_reader.init_packet(packet[0], packet[1])
             #print "< %s" % packet
             self.signal('on_packet', packet)
-        else:
-            print "Packet unknown:", hex(packet[0])
+        except PacketReader.UnknownPacketException:
+            print "Packet unknown", hex(packet[0])
 
     def send(self, data):
         if not isinstance(data, basestring):

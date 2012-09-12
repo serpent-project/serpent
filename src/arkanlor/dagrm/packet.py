@@ -137,6 +137,13 @@ class Packet(object):
         elif packet_or_values is None:
             self.values = {}
             self._data = ''
+        else:
+            self.values = {}
+            self._data = ''
+            self.set_initial_arg(packet_or_values)
+
+    def set_initial_arg(self, arg):
+        pass
 
     def __repr__(self):
         try:
@@ -428,3 +435,76 @@ class Packet(object):
             self.write_data(struct.pack('%s4B' % self.flow, *x))
         else:
             raise DatagramException, "Ipv4 invalid?"
+
+class PacketReader(object):
+    """
+        Use a PacketReader to initialize your packets from your protocol.
+    """
+    __slots__ = ['packet_set', 'minimal_packet_size', 'dataflow',
+                 'lengthtype', 'maximal_packet_size']
+    minimal_packet_size = 3 # byte + ushort len
+    maximal_packet_size = None
+    dataflow = '>' # ux
+    lengthtype = 'H' # ushort
+
+    class UnknownPacketException(DatagramException):
+        pass
+    class MalformedPacketException(DatagramException):
+        pass
+
+    def __init__(self, packet_set):
+        self.packet_set = packet_set
+
+    def check_length(self, cmd, length=None):
+        """
+            check a length of a packet for any secondary lookups.
+        """
+        return length or 0
+
+    def read_from_buffer(self, buffer):
+        """
+            returns:
+            None (not enough data) OR
+            rest-of-buffer, cmd, packet-data 
+        """
+        if buffer == '':
+            return None
+        cmd = ord(buffer[0])
+        p = self.packet_set.get(cmd, None)
+        if not p:
+            raise PacketReader.UnknownPacketException('Unknown Packet Type %s' % cmd)
+        try:
+            l = int(p.p_length)
+        except:
+            l = None
+        l = self.check_length(cmd, l)
+        if l == 0: # dynamic packet.
+            if len(buffer) < self.minimal_packet_size: return None
+            l = struct.unpack('%s%s' % (self.dataflow, self.lengthtype),
+                              buffer[1:self.minimal_packet_size])[0]
+            if l < self.minimal_packet_size or (self.maximal_packet_size and\
+                                                l > self.maximal_packet_size):
+                raise PacketReader.MalformedPacketException(
+                      "Malformed packet %s" % hex(cmd))
+            print len(buffer)
+            print l
+            if len(buffer) < l: return None
+            packet_data, buffer = buffer[self.minimal_packet_size:l], buffer[l:]
+        else: # fixed size packet.
+            if len(buffer) < l: return None
+            packet_data, buffer = buffer[1:l], buffer[l:]
+        return (buffer, cmd, packet_data)
+
+    def init_packet(self, cmd, packet_data):
+        """
+            creates packet out of cmd and data and calls it to parse itself.
+            length is already removed.
+        """
+        packet_class = self.packet_set.get(cmd, None)
+        if packet_class is None:
+            raise PacketReader.UnknownPacketException('Packet not in Parsing list: %s' % cmd)
+        else:
+            packet = packet_class(packet_data)
+        packet = packet.unpack()
+        return packet
+

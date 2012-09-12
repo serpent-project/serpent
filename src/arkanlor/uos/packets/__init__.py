@@ -15,6 +15,7 @@ from arkanlor.uos.packets.login import \
 from arkanlor.uos.packets.player import *
 from arkanlor.uos.packets.talk import *
 from arkanlor.uos.packets.world import *
+from arkanlor.uos.packet import UOPacketReader
 
 server_parsers = packet_list(
  NoEncryption,
@@ -35,5 +36,7 @@ server_parsers = packet_list(
  TalkRequest,
  UnicodeTalkRequest,
  CreateCharacter,)
+
+packet_reader = UOPacketReader(server_parsers)
 
 client_parsers = packet_list()

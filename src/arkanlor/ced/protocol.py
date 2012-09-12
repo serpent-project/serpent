@@ -23,7 +23,8 @@ import struct, re  #@UnresolvedImport
 from django.http import HttpResponse, HttpResponseNotAllowed, \
     HttpResponseForbidden
 from django.test.client import RequestFactory, ClientHandler, Client
-from arkanlor.ced.packets import server_parsers, ProtocolVersion, ServerState
+from arkanlor.ced.packets import server_parsers, ProtocolVersion, ServerState, \
+    packet_reader
 from arkanlor.utils import hexprint
 
 class CEDProtocolException(Exception):
@@ -55,8 +56,9 @@ class CED(Protocol):
     def dataReceived(self, data):
         self._input += data
         while True:
-            packet = self._packet_from_buffer()
-            if packet is None: break
+            data = packet_reader.read_from_buffer(self._input)
+            if data is None: break
+            self._input, packet = data[0], data[1:]
             self.on_packet(packet)
 
     def send(self, data):
@@ -71,26 +73,3 @@ class CED(Protocol):
 
     def on_packet(self, packet):
         self.handler(packet)
-
-    def _packet_from_buffer(self):
-        #print "Reading packet from buffer"
-        if self._input == '':
-            return None
-        cmd = ord(self._input[0])
-        p = server_parsers.get(cmd, None)
-        #print "Decoding packet %s" % p
-        if not p:
-            raise CEDProtocolException('Unknown Packet Type %s' % cmd)
-        l = p.p_length
-        if l == 0:
-            if len(self._input) < 5: return None
-            l = struct.unpack('<I', self._input[1:5])[0]
-            #if l < 3 or l > 0x8000:
-            #    raise CEDProtocolException("Malformed packet %s" % hex(cmd))
-            if len(self._input) < l: return None
-            x, self._input = self._input[5:l], self._input[l:]
-        else:
-            if len(self._input) < l: return None
-            x, self._input = self._input[1:l], self._input[l:]
-        #print "cmd, x, %s, %s" % (cmd, x)
-        return (cmd, x)
