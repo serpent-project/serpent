@@ -5,7 +5,7 @@
     
     @see uos packets.
 """
-from arkanlor.dagrm import packet_list, BYTE, USHORT, UINT, RAW, \
+from arkanlor.dagrm import packet_list, BYTE, SHORT, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN, SBYTE, SubPackets, ReadWriteDatagram, \
     WORD, CARDINAL
 from arkanlor.ced.packet import CEDPacket as Packet, CEDPacketReader
@@ -13,7 +13,7 @@ from arkanlor.ced.const import PROTOCOL_VERSION, LoginStates, ServerStates, \
     AccessLevel, ModifyRegionStatus, DeleteRegionStatus, DeleteUserStatus, \
     ModifyUserStatus
 from arkanlor.dagrm.extended import DatagramCountLoop, DatagramIf, \
-    DatagramPacket, DatagramSub
+    DatagramPacket, DatagramSub, DatagramEndLoop
 import zlib
 
 P_CED = 0x5
@@ -164,24 +164,29 @@ class ClientCommand(Packet):
 # 0x1 : compressed packets.
 
 class Compressed(Packet):
-    __slots__ = Packet.__slots__ + ['subpacket']
+    __slots__ = Packet.__slots__ + ['subp']
     p_id = 0x1
     p_length = 0
-    subpacket = None
     _datagram = []
+
+    def __init__(self, packet):
+        self.subp = None
+        super(Compressed, self).__init__(packet)
 
     def set_initial_arg(self, arg):
         # we presume, the subpacket is the value
         if isinstance(arg, Packet):
-            self.subpacket = arg
+            self.subp = arg
 
     def _serialize(self):
         # we serialize our subpacket and zlib it.
-        pdata = self.subpacket.serialize()
+        pdata = self.subp.serialize()
+        self.w_uint(len(pdata))
         self._data += zlib.compress(pdata, 9)
 
     def _unpack(self):
-        pdata = zlib.decompress(self._data)
+        size = self.r_uint()
+        pdata = zlib.decompress(self._data[:size])
         data = packet_reader.read_from_buffer(pdata)
         if data is not None:
             return packet_reader.init_packet(data[1], data[2])
@@ -451,11 +456,38 @@ class AdminCommand(Packet):
 ##############################################################################
 # from 0x4: standard packets.
 
+class _Static(Packet):
+    _datagram = [('tile', WORD),
+                 ('rx', BYTE),
+                 ('ry', BYTE),
+                 ('z', SBYTE),
+                 ('hue', SHORT),
+                 ]
+
+class _MapCell(Packet):
+    _datagram = [('tile', WORD),
+                 ('z', SBYTE)]
+
+class _MapBlock(Packet):
+    _datagram = [('bx', WORD),
+                 ('by', WORD),
+                 ('header', UINT),
+                 DatagramCountLoop(64, 'cells', _MapCell),
+                 ('count', WORD), # no of statics.
+                 DatagramCountLoop('count', 'statics', _Static)
+                ]
+
+class _Coords(Packet):
+    _datagram = [('bx', WORD),
+                 ('by', WORD)]
+
 class Block(Packet):
     __slots__ = Packet.__slots__
     p_id = 0x4
     p_length = 0
-    _datagram = []
+    _datagram = ReadWriteDatagram(
+                    [DatagramEndLoop('coords', _Coords)],
+                    [DatagramEndLoop('blocks', _MapBlock)])
 
 class FreeBlock(Packet):
     __slots__ = Packet.__slots__

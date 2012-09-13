@@ -22,11 +22,12 @@ class Parsable(object):
         return ""
 
 class MapBlock(MapRelated):
-    unknown = None
-    cells = None
+    __slots__ = MapRelated.__slots__ + ['unknown', 'cells']
     size = 64 * 3 + 4
 
     def __init__(self, cells=None, unknown=None):
+        self.unknown = []
+        self.cells = []
         if cells:
             self.cells = cells
             self.unknown = unknown
@@ -38,7 +39,7 @@ class MapBlock(MapRelated):
         offset = 0
         self.cells = []
         unpack_data = unpack("<" + "Hb" * 64, cell_buffer)
-        while offset < 64:
+        while offset < 128:
             self.cells += [ unpack_data[offset : offset + 2] ]
             offset += 2
         self.unknown = unknown

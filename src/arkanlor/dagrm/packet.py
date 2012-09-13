@@ -486,8 +486,6 @@ class PacketReader(object):
                                                 l > self.maximal_packet_size):
                 raise PacketReader.MalformedPacketException(
                       "Malformed packet %s" % hex(cmd))
-            print len(buffer)
-            print l
             if len(buffer) < l: return None
             packet_data, buffer = buffer[self.minimal_packet_size:l], buffer[l:]
         else: # fixed size packet.

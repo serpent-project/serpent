@@ -96,7 +96,10 @@ class DatagramCountLoop(DatagramManipulator):
     def packet_read(self, values, data, instance=None):
         # we use a packet to eat the data count times and copy the values into items
         items = values.get(self.items, [])
-        count = values.get(self.count, len(items))
+        if isinstance(self.count, int):
+            count = self.count
+        else:
+            count = values.get(self.count, len(items))
         p = self.packets[0]()
         for x in range(0, count):
             p._data = data
@@ -111,9 +114,47 @@ class DatagramCountLoop(DatagramManipulator):
         # we use a packet to serialize len(items) times giving items[n] as values.
         # 
         items = values.get(self.items, [])
-        count = values.get(self.count, len(items))
+        if isinstance(self.count, int):
+            count = self.count
+        else:
+            count = values.get(self.count, len(items))
         p = self.packets[0]()
         for x in range(0, count):
+            p._data = ''
+            p.values = items[x]
+            # write out packet
+            p._serialize()
+            data += p._data
+        return values, data
+
+class DatagramEndLoop(DatagramManipulator):
+    """
+        reads the same packet again and again until it hits no data.
+    """
+    __slots__ = ['items', 'packet']
+    def __init__(self, items, Packet):
+        self.packet = Packet
+        self.items = items
+
+    def packet_read(self, values, data, instance=None):
+        # we use a packet to eat the data count times and copy the values into items
+        items = values.get(self.items, [])
+        p = self.packet()
+        while data:
+            p._data = data
+            p.values = {}
+            p.unpack()
+            items += [p.values]
+            data = p._data
+        values[self.items] = items
+        return values, data
+
+    def packet_write(self, values, data, instance=None):
+        # we use a packet to serialize len(items) times giving items[n] as values.
+        # 
+        items = values.get(self.items, [])
+        p = self.packet()
+        for x in range(0, len(items)):
             p._data = ''
             p.values = items[x]
             # write out packet

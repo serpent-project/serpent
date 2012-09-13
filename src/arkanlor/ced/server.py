@@ -11,7 +11,7 @@ class ServedClientCED:
         self._world = world
         self._protocol = protocol
         self._engines = []
-        LogEngine(self)
+        #LogEngine(self)
         CedLogin(self)
         # self.signal('on_connect')
 

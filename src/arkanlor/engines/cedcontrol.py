@@ -7,6 +7,7 @@ from arkanlor import settings
 from arkanlor.ced.const import ModifyRegionStatus, DeleteRegionStatus
 from django.db.models import Q
 from django.contrib.auth.models import User
+from uolib1 import map as uomap
 
 class CedControl(Engine):
     def __init__(self, controller):
@@ -99,3 +100,27 @@ class CedControl(Engine):
         # p.DeleteUser and p.ModifyUser are ignored for now.
 
         # 
+        elif isinstance(packet, p.Block):
+            import random
+            response = {'blocks': []}
+            # create blocks.
+            coords = packet.values.get('coords', [])
+            map = uomap.MapCacheSingular('/home/g4b/Spiele/Alathair/map0.ala')
+            for coord in coords:
+                empty_block = {'count': 0, # no statics.
+                              'statics': [],
+                              'cells': [],
+                              'bx': coord['bx'],
+                              'by': coord['by']
+                              }
+                block = map.get_block(coord['bx'], coord['by'])
+                if len(block.cells) < 64:
+                    print len(block.cells)
+                    continue
+                for i in xrange(64):
+                    empty_block['cells'] += [{'tile': block.cells[i][0],
+                                                 'z': block.cells[i][1]
+                                            }]
+                response['blocks'] += [empty_block]
+            self.send(p.Compressed(p.Block(response)))
+            #self.send(p.Block(response))

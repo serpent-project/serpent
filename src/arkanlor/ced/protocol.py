@@ -62,8 +62,8 @@ class CED(Protocol):
             self.on_packet(packet)
 
     def send(self, data):
-        hexprint(data)
-        print self.transport.write(data)
+        #hexprint(data)
+        self.transport.write(data)
 
     def batch_send(self, datalist):
         step = 20
