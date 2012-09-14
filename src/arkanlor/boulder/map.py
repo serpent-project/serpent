@@ -114,7 +114,7 @@ class MapBlock:
 
 
 class Map(object):
-    def __init__(self, parent, size, sync=None):
+    def __init__(self, parent, size=settings.DEFAULT_MAP0_SIZE, sync=None):
         self.parent = parent
         self.width, self.height = size
         self.blocks_x, self.blocks_y = numpy.ceil(self.width / FSHAPE_X), numpy.ceil(self.height / FSHAPE_Y)
@@ -129,6 +129,23 @@ class Map(object):
     def _rel(self, x, y):
         """ relative block coordinates """
         return (x % SHAPE_X, y % SHAPE_Y)
+
+    def get_neighbours(self, block):
+        # returns the neighbours (diamond)
+        # ensw
+        east, north, south, west = None, None, None, None
+        bx, by = block.bx, block.by
+        # east
+        if bx < self.blocks_x - 1:
+            east = self.get_block_or_none(bx + 1, by)
+        if by > 0:
+            north = self.get_block_or_none(bx, by - 1)
+        if by < self.blocks_y - 1:
+            south = self.get_block_or_none(bx, by + 1)
+        if bx > 0:
+            west = self.get_block_or_none(bx - 1, by)
+        return (east, north, south, west)
+
 
     def block(self, x, y):
         """
@@ -147,6 +164,12 @@ class Map(object):
             block = MapBlock(self, bx * SHAPE_X, by * SHAPE_Y)
             self.blocks[bx, by] = block
             return block
+
+    def get_block_or_none(self, bx, by):
+        try:
+            return self.blocks[bx, by]
+        except KeyError:
+            return None
 
     def walkable(self, x, y):
         return self.block(x, y).matrix[self._rel(x, y)] == 0x0

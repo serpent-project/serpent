@@ -38,6 +38,26 @@
 
 import numpy, random, math
 
+def CombineNeighbours(z, east=None,
+                         north=None,
+                         south=None,
+                         west=None,
+                         n=1):
+    # takes outer pixels of neighbours.
+    # all have to be the same shape.
+    W, H = z.shape
+    for x in range(0, W, n):
+        if north is not None:
+            z[x, 0] = north[x, H - 1]
+        if south is not None:
+            z[x, H - 1] = south[x, 0]
+    for y in range(0, H, n):
+        if west is not None:
+            z[0, y] = west[W - 1, y]
+        if east is not None:
+            z[W - 1, y] = east[0, y]
+    return z
+
 
 def Generate(shape, generator):
     """Generate terrain with position-independent generating function"""
@@ -54,11 +74,11 @@ def WhiteNoise(shape):
 
 
 def MidpointDisplacementNoise(shape, n=None, persistence=0.5,
-                              ox=0, oy=0):
+                              z=None):
     """Generate 1/f, aka pink, noise using midpoint displacement via the
     diamond-square algorithm"""
 
-    terrain = Terrain(shape)
+    terrain = Terrain(shape, data=z)
 
     def item(x, y):
         return terrain.z[x % terrain.width(), y % terrain.height()]
@@ -81,11 +101,21 @@ def MidpointDisplacementNoise(shape, n=None, persistence=0.5,
             n += n
 
     sigma = 0.5
+    range_start = 0
+    range_end_x = W
+    range_end_y = H
+    #if z is not None:
+    #    range_start = 1
+    #    range_end_x -= 1
+    #    range_end_y -= 1
 
     # fill in initial values
-    for y in range(0, W, n):
-        for x in range(0, H, n):
-            terrain.z[x, y] = random.gauss(0, sigma)
+    for y in range(range_start, range_end_y, n):
+        for x in range(range_start, range_end_x, n):
+            if terrain.z[x, y]:
+                terrain.z[x, y] = (terrain.z[x, y] + random.gauss(0, sigma)) / 2.0
+            else:
+                terrain.z[x, y] = random.gauss(0, sigma)
 
     # at each scale level, do your thing
     while n > 1:
@@ -163,9 +193,9 @@ def FaultNoise(shape, numFaults=200):
     return tera
 
 
-def PerlinNoise(shape, Nrange=None, B=256):
+def PerlinNoise(shape, Nrange=None, B=256, z=None):
 
-    tera = Terrain(shape)
+    tera = Terrain(shape, data=z)
 
     def perlin_precomps(dimensions, B=256):
         "Build random permutation and gradient vectors"
