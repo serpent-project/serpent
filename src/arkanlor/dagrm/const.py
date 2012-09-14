@@ -39,6 +39,7 @@ CSTRING = 0xa1
 PSTRING = 0xa2
 UCSTRING = 0xb1
 SPEECHSTRING = 0xc0 # 
+COUNT = 0xcc # count is a write helper. usage: ('count', COUNT, BYTE, 'items')
 RAW = 0xff # read rest of packet. write out directly.
 
 class DatagramException(Exception):

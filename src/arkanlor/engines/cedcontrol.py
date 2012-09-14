@@ -14,6 +14,10 @@ class CedControl(Engine):
         Engine.__init__(self, controller)
         self.account = None
 
+    def get_map_db(self):
+        return self._ctrl._world.gamestate.get_map_db()
+    worldmap_db = property(get_map_db)
+
     def get_map(self):
         return self._ctrl._world.gamestate.get_map()
     worldmap = property(get_map)
@@ -29,16 +33,15 @@ class CedControl(Engine):
             regions_db = WorldMapRegion.objects.filter(
                                           Q(owners__isnull=True) |
                                           Q(owners__exact=self.account),
-                                          map=self.worldmap,
+                                          map=self.worldmap_db,
                                           )
 
-            regions = {'count': regions_db.count(),
-                       'regions': []}
+            regions = {'regions': []}
             for region in regions_db:
                 regions['regions'] += [ region.packet_info() ]
             self.send(p.RegionList(regions))
         elif isinstance(packet, p.ModifyRegion):
-            available_regions = WorldMapRegion.objects.filter(map=self.worldmap,
+            available_regions = WorldMapRegion.objects.filter(map=self.worldmap_db,
                                                               owners__exact=self.account)
             status = ModifyRegionStatus.NoOp
             packet_info = {}
@@ -51,7 +54,7 @@ class CedControl(Engine):
                     status = ModifyRegionStatus.Modified
                 except WorldMapRegion.DoesNotExist:
                     # set up a new region
-                    region = WorldMapRegion(map=self.worldmap,
+                    region = WorldMapRegion(map=self.worldmap_db,
                                             name=name)
                     region.save()
                     region.owners.add(self.account)
@@ -63,7 +66,7 @@ class CedControl(Engine):
             self.send(p.ModifyRegion(packet_info))
         elif isinstance(packet, p.DeleteRegion):
             # delete a region
-            available_regions = WorldMapRegion.objects.filter(map=self.worldmap,
+            available_regions = WorldMapRegion.objects.filter(map=self.worldmap_db,
                                                               owners__exact=self.account)
             status = DeleteRegionStatus.NotFound
             name = packet.values.get('name', '')
@@ -86,41 +89,23 @@ class CedControl(Engine):
                     uregions = WorldMapRegion.objects.filter(owners__exact=u).values_list('name', flat=True)
                     d = {'name': u.username,
                          'access_level': 0, # modify user database to be read indirectly.
-                         'count': len(uregions),
                          'regions': [{'name': rname} for rname in uregions],
                          }
                     users += [d]
-                self.send(p.UserList({'count': len(users), 'users': users}))
+                self.send(p.UserList({'users': users}))
             else:
                 # cannot see other than yourself.
-                self.send(p.UserList({'count': 1, 'users': [{'name': self.account.name,
+                self.send(p.UserList({'users': [{'name': self.account.name,
                                                              'access_level': 0,
-                                                             'count': 0
                                                              }]}))
         # p.DeleteUser and p.ModifyUser are ignored for now.
 
         # 
         elif isinstance(packet, p.Block):
-            import random
             response = {'blocks': []}
             # create blocks.
             coords = packet.values.get('coords', [])
-            map = uomap.MapCacheSingular('/home/g4b/Spiele/Alathair/map0.ala')
             for coord in coords:
-                empty_block = {'count': 0, # no statics.
-                              'statics': [],
-                              'cells': [],
-                              'bx': coord['bx'],
-                              'by': coord['by']
-                              }
-                block = map.get_block(coord['bx'], coord['by'])
-                if len(block.cells) < 64:
-                    print len(block.cells)
-                    continue
-                for i in xrange(64):
-                    empty_block['cells'] += [{'tile': block.cells[i][0],
-                                                 'z': block.cells[i][1]
-                                            }]
-                response['blocks'] += [empty_block]
+                response['blocks'] += [self.worldmap.get_block(coord['bx'], coord['by']).packet_info()]
             self.send(p.Compressed(p.Block(response)))
             #self.send(p.Block(response))

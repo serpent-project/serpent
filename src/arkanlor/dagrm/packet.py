@@ -183,9 +183,27 @@ class Packet(object):
                                                       self._data,
                                                       self)
                 continue
-            l, key, t, item = None, item[0], item[1], item[2:]
+            _d, l, key, t, item = None, None, item[0], item[1], item[2:]
             if item: # optional argument length
-                l = item[0]
+                l, item = item[0], item[1:]
+            if item:
+                _d = item[0]
+            d = values.get(key, None)
+            if d is None:
+                if _d:
+                    d = _d
+                elif t < FIXSTRING:
+                    d = 0
+                else:
+                    d = ''
+            if t == COUNT:
+                # count is swapped.
+                if not d:
+                    # count can only be used with all parameters.
+                    # t = COUNT, key = NAME, l = NEW_KEY, d = value.
+                    # it does however not affect reading it.
+                    print "Please use Count with ALL parameters!"
+                t = l or BYTE
             if not t:
                 values[key] = self.r_boolean()
             elif t == BYTE:
@@ -244,6 +262,20 @@ class Packet(object):
                     d = 0
                 else:
                     d = ''
+            if t == COUNT:
+                # count is swapped.
+                if not _d:
+                    # count can only be used with all parameters.
+                    # t = COUNT, key = NAME, l = TYPE, d = other_key.
+                    # we cant estimate a count.
+                    # if d is also none, we take 0.
+                    if not d:
+                        d = 0
+                    # else: dont affect anything, manual count given.
+                else:
+                    # we get _d
+                    d = len(values.get(_d, []))
+                t = l or BYTE # if l is not given, its byte default.
             try:
                 if not t:
                     self.w_boolean(d)

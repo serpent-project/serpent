@@ -15,6 +15,7 @@ from arkanlor.ced.const import PROTOCOL_VERSION, LoginStates, ServerStates, \
 from arkanlor.dagrm.extended import DatagramCountLoop, DatagramIf, \
     DatagramPacket, DatagramSub, DatagramEndLoop
 import zlib
+from arkanlor.dagrm.const import COUNT
 
 P_CED = 0x5
 
@@ -323,7 +324,7 @@ class _Area(Packet):
 
 class _Region(Packet):
     _datagram = [('name', CSTRING),
-                 ('count', BYTE),
+                 ('count', COUNT, BYTE, 'areas'),
                  DatagramCountLoop('count', 'areas', _Area)]
 
 class ModifyRegion(ACSubPacket):
@@ -331,7 +332,7 @@ class ModifyRegion(ACSubPacket):
     _datagram = ReadWriteDatagram(
                 # read (aka from client)
                     [('name', CSTRING),
-                     ('count', BYTE),
+                     ('count', COUNT, BYTE, 'areas'),
                      DatagramCountLoop('count', 'areas', _Area),
                      ],
                 # write (aka to client)
@@ -341,7 +342,7 @@ class ModifyRegion(ACSubPacket):
                                 lambda x: x in [ModifyRegionStatus.Added,
                                                 ModifyRegionStatus.Modified],
                                 when_true=DatagramSub([
-                                 ('count', BYTE),
+                                 ('count', COUNT, BYTE, 'areas'),
                                  DatagramCountLoop('count', 'areas', _Area),
                                 ]),
                                 ),
@@ -363,7 +364,7 @@ class RegionList(ACSubPacket):
                     [],
                 # write (aka to client)
                     [
-                     ('count', BYTE),
+                     ('count', COUNT, BYTE, 'regions'),
                      DatagramCountLoop('count', 'regions', _Region),
                      ],
                 )
@@ -376,7 +377,7 @@ class _RegionName(Packet):
 class _User(Packet):
     _datagram = [('name', CSTRING),
                  ('access_level', BYTE, None, AccessLevel.NoAccess),
-                 ('count', BYTE),
+                 ('count', COUNT, BYTE, 'regions'),
                  DatagramCountLoop('count', 'regions', _RegionName)
                  ]
 
@@ -389,7 +390,7 @@ class ModifyUser(ACSubPacket):
                 [('username', CSTRING),
                  ('password', CSTRING),
                  ('access_level', BYTE),
-                 ('count', BYTE),
+                 ('count', COUNT, BYTE, 'regions'),
                  DatagramCountLoop('count', 'regions', _RegionName)
                  ],
                 [('status', BYTE),
@@ -399,7 +400,7 @@ class ModifyUser(ACSubPacket):
                                                 ModifyUserStatus.Modified],
                                 when_true=DatagramSub([
                                   ('access_level', BYTE),
-                                  ('count', BYTE),
+                                  ('count', COUNT, BYTE, 'regions'),
                                   DatagramCountLoop('count', 'regions', _RegionName),
                                 ]),
                                 ),
@@ -417,7 +418,7 @@ class UserList(ACSubPacket):
     p_id = 0x7
     _datagram = ReadWriteDatagram(
                 [],
-                [('count', WORD), #of accounts.
+                [('count', COUNT, WORD, 'users'), #of accounts.
                  DatagramCountLoop('count', 'users', _User)
                  ])
 
@@ -473,7 +474,7 @@ class _MapBlock(Packet):
                  ('by', WORD),
                  ('header', UINT),
                  DatagramCountLoop(64, 'cells', _MapCell),
-                 ('count', WORD), # no of statics.
+                 ('count', COUNT, WORD, 'statics'), # no of statics.
                  DatagramCountLoop('count', 'statics', _Static)
                 ]
 

@@ -20,6 +20,7 @@ GNU General Public License for more details.
 """
 import models, dynamics
 import numpy
+from arkanlor.boulder.map import UOMap, Map
 
 DIR_N = 0x00
 DIR_NE = 0x01
@@ -51,10 +52,14 @@ class BoulderState(object):
         self.items = []
         self.ids = {}
         self.free_id = 0x0222
-        self.worldmap = models.WorldMap.objects.get(name='default')
+        self.worldmap_db = models.WorldMap.objects.get(name='default')
+        self.worldmap = UOMap(self)
 
     def get_map(self):
         return self.worldmap
+
+    def get_map_db(self):
+        return self.worldmap_db
 
     def create_mobile_for_mobile(self, mobile, client):
         """
@@ -110,7 +115,7 @@ class BoulderState(object):
     def get_object(self, id):
         # seek in db
         try:
-            return models.Item.objects.get(worldmap=self.worldmap,
+            return models.Item.objects.get(worldmap=self.worldmap_db,
                                            id=id)
         except models.Item.DoesNotExist, e:
             try:
@@ -122,7 +127,7 @@ class BoulderState(object):
         # request all items in a rectangle
         # db method
         items = models.Item.objects.filter(
-                                    worldmap=self.worldmap,
+                                    worldmap=self.worldmap_db,
                                     x__gte=x1,
                                     x__lt=x2,
                                     y__gte=y1,
@@ -131,7 +136,7 @@ class BoulderState(object):
 
     def items_outer_rect(self, x, y, dx=18, dy=18, minimal=8):
         items = models.Item.objects.filter(
-                                    worldmap=self.worldmap,
+                                    worldmap_db=self.worldmap_db,
                                     x__gte=x - dx,
                                     x__lt=x + dx,
                                     y__gte=y - dy,
@@ -216,6 +221,6 @@ class BoulderState(object):
         # get infos about this boulder
         return {
                 'num_mobiles': len(self.mobiles),
-                'num_items': models.Item.objects.filter(worldmap=self.worldmap).count(),
+                'num_items': models.Item.objects.filter(worldmap_db=self.worldmap_db).count(),
                 }
 

@@ -81,6 +81,10 @@ ARKANLOR_AUTO_REGISTER = True
 ARKANLOR_TICK_SPEED = 0.01
 ARKANLOR_TICK_LIMIT = 0.2
 
+# root to default mul files
+ARKANLOR_MULS = os.path.join(PROJECT_ROOT, 'muls')
+DEFAULT_MAP0 = os.path.join(ARKANLOR_MULS, 'map0.mul')
+DEFAULT_MAP0_SIZE = (768 * 8, 512 * 8) # 6144, 4096
 try:
     from settings_local import *
 except ImportError, e:
