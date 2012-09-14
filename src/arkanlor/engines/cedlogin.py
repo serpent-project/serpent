@@ -28,11 +28,12 @@ class CedLogin(Engine):
                     access_level = AccessLevel.Normal
                 else:
                     access_level = AccessLevel.View
+                map_width, map_height = self._ctrl._world.gamestate.get_map().block_size()
                 self._ctrl.send(p.LoginResponse({'state': LoginStates.OK,
                                         'access_level': access_level ,
                                         # @todo: boulder.boundaries
-                                         'map_width': 64 * 64,
-                                         'map_height': 64 * 64 }))
+                                         'map_width': map_width,
+                                         'map_height': map_height }))
                 # also send client list with compressed packet.
                 # send client connected to all ced clients.
                 # send clientpospacket to clients lastpos.

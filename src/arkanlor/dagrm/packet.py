@@ -276,6 +276,7 @@ class Packet(object):
                     # we get _d
                     d = len(values.get(_d, []))
                 t = l or BYTE # if l is not given, its byte default.
+                #print "COUNT DETECTED t=%s, d=%s, l=%s, _d=%s" % (t, d, l, _d)
             try:
                 if not t:
                     self.w_boolean(d)
@@ -305,7 +306,7 @@ class Packet(object):
                     self.write_data(d)
                 else:
                     raise DatagramException('Unknown Packet in Datagram')
-            except DatagramException, e:
+            except Exception, e:
                 print "="*80
                 print "datagram write exception"
                 print e

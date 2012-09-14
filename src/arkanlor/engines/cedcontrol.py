@@ -106,6 +106,7 @@ class CedControl(Engine):
             # create blocks.
             coords = packet.values.get('coords', [])
             for coord in coords:
-                response['blocks'] += [self.worldmap.get_block(coord['bx'], coord['by']).packet_info()]
+                pi = self.worldmap.get_block(coord['bx'], coord['by']).packet_info()
+                response['blocks'] += [pi]
             self.send(p.Compressed(p.Block(response)))
             #self.send(p.Block(response))

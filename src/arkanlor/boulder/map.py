@@ -94,7 +94,7 @@ class MapBlock:
         pass
 
     def get_cells(self):
-        return [ {'tile': self.tiles[x, y], 'z': self.heights[x, y]}
+        return [ {'tile': int(self.tiles[x, y]), 'z': int(self.heights[x, y])}
                  for y in xrange(SHAPE_Y) for x in xrange(SHAPE_X)
                  ]
 
@@ -143,7 +143,7 @@ class Map(object):
         """
         try:
             return self.blocks[bx, by]
-        except IndexError:
+        except KeyError:
             block = MapBlock(self, bx * SHAPE_X, by * SHAPE_Y)
             self.blocks[bx, by] = block
             return block
@@ -151,6 +151,9 @@ class Map(object):
     def walkable(self, x, y):
         return self.block(x, y).matrix[self._rel(x, y)] == 0x0
 
+    def block_size(self):
+        # returns map size in blocks
+        return (self.blocks_x, self.blocks_y)
     def size(self):
         return (self.width, self.height)
     def bounds(self):
