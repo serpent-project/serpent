@@ -15,7 +15,7 @@ def select_tile(tile_list, f):
 
 class UOTiles:
     water = [0xa8 + x for x in xrange(4)]
-    water_shallow = [0x136, 0x137]
+    water_deep = [0x136, 0x137]
     grass = [0x3 + x for x in xrange(3)]
     rock = [0x22c + x for x in xrange(3)]
     sand = [0x16 + x for x in xrange(4)]
@@ -47,12 +47,17 @@ class Biome(object):
 
 class DeepSea(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
-        if hf < 0.9:
+        if hf < 0.1:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.water_deep, tf)
+            mapblock.heights[rx, ry] = 0
+        elif hf < 0.94:
             # water normal.
             mapblock.tiles[rx, ry] = select_tile(UOTiles.water, tf)
+            mapblock.heights[rx, ry] = 0
         else:
-            mapblock.tiles[rx, ry] = select_tile(UOTiles.water_shallow, tf)
-        mapblock.heights[rx, ry] = 0
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.sand, tf)
+            mapblock.heights[rx, ry] = int(hf * 2)
+
 
 class Coastal(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
