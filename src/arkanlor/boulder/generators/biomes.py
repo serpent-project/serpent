@@ -17,8 +17,10 @@ class UOTiles:
     water = [0xa8 + x for x in xrange(4)]
     water_shallow = [0x136, 0x137]
     grass = [0x3 + x for x in xrange(3)]
-    rock = [0xda + x for x in xrange(3)]
+    rock = [0x22c + x for x in xrange(3)]
     sand = [0x16 + x for x in xrange(4)]
+    dirt = [0x75 + x for x in xrange(4)]
+    dirt_stones = [0x71 + x for x in xrange(4)]
 
 class Biome(object):
     """
@@ -54,11 +56,11 @@ class DeepSea(Biome):
 
 class Coastal(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
-        if hf < 0.1:
+        if hf < 0.2:
             # water normal.
             mapblock.tiles[rx, ry] = select_tile(UOTiles.water, tf)
             mapblock.heights[rx, ry] = 0
-        elif hf < 0.5:
+        elif hf < 0.4:
             # sandcoast
             mapblock.tiles[rx, ry] = select_tile(UOTiles.sand, tf)
             mapblock.heights[rx, ry] = int(hf * 8)
@@ -73,13 +75,31 @@ class GrassLand(Biome):
         mapblock.tiles[rx, ry] = select_tile(UOTiles.grass, tf)
         mapblock.heights[rx, ry] = int(hf * 8)
 
+class Rocks(Biome):
+    def apply_cell(self, mapblock, rx, ry, hf, tf):
+        if hf < 0.05:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.grass, tf)
+            mapblock.heights[rx, ry] = int(hf * 8)
+        elif hf < 0.25:
+            # dirt
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.dirt, tf)
+            mapblock.heights[rx, ry] = int(hf * 8)
+        elif hf < 0.4:
+            # rocksides
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.dirt_stones, tf)
+            mapblock.heights[rx, ry] = int(hf * 8) + 2
+        else:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.rock, tf)
+            mapblock.heights[rx, ry] = int(hf * 16) + 6
+
 
 # used to scatter biomes themselves.
 default_biomes = [
         # range, biomeclass
         (0.0, 0.1, DeepSea()),
-        (0.1, 0.3, Coastal()),
-        (0.3, 1.1, GrassLand()),
+        (0.1, 0.25, Coastal()),
+        (0.25, 0.7, GrassLand()),
+        (0.7, 1.1, Rocks()),
           ]
 
 def get_biome(f, biomes=default_biomes):

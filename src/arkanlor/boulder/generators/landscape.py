@@ -1,6 +1,6 @@
 from arkanlor.boulder.map import Map, MapSync, SHAPE_X, SHAPE_Y, BLOCK_SHAPE
 from arkanlor.misc.geology import MidpointDisplacementNoise, PerlinNoise, \
-    CombineNeighbours
+    CombineNeighbours, Voronoi, WhiteNoise
 from arkanlor.boulder.generators import biomes
 import numpy
 
@@ -22,7 +22,7 @@ class BiomeMapSync(MapSync):
             height_map = numpy.square(self.parent.height_noise(BLOCK_SHAPE, z=z).smooth4().normalize().z)
         else:
             height_map = numpy.square(self.parent.height_noise(BLOCK_SHAPE).smooth4().normalize().z)
-        tile_map = MidpointDisplacementNoise(BLOCK_SHAPE).normalize().z
+        tile_map = self.parent.tile_noise(BLOCK_SHAPE).smooth().z
         # get my biome.
         self.parent.get_biome(mapblock).apply(mapblock, height_map, tile_map)
 
@@ -31,7 +31,7 @@ class BiomeMap(Map):
                  size=None,
                  sync=None,
                  height_noise=MidpointDisplacementNoise,
-                 tile_noise=None,
+                 tile_noise=WhiteNoise,
                  sea_level=0.2,
                  ):
         self.height_noise = height_noise
@@ -53,7 +53,7 @@ class BiomeMap(Map):
         except KeyError:
             # create a new biome map.
             biomemap = []
-            noise = MidpointDisplacementNoise((8, 8)).normalize()
+            noise = Voronoi((8, 8)).normalize()
             for x in xrange(8):
                 row = []
                 for y in xrange(8):
