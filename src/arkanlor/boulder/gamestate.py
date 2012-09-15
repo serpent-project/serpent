@@ -223,6 +223,6 @@ class BoulderState(object):
         # get infos about this boulder
         return {
                 'num_mobiles': len(self.mobiles),
-                'num_items': models.Item.objects.filter(worldmap_db=self.worldmap_db).count(),
+                'num_items': models.Item.objects.filter(worldmap=self.worldmap_db).count(),
                 }
 
