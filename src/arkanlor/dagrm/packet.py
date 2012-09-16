@@ -446,7 +446,7 @@ class Packet(object):
     def r_us646(self):
         l = self.r_short()
         if l:
-            return self.read_data(l).decode('utf-16be')
+            return self.read_data(l * 2).decode('utf-16be')
         return ''
 
     ### Writing

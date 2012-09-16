@@ -147,7 +147,7 @@ def _chunkify(mb1, mb2, mb3, mb4, continuous=False):
         # see if i have still items at this height
         # or already?
         height = layer * 16
-        if height < lowest_height or height > highest_height:
+        if (not continuous) and (height < lowest_height or height > highest_height):
             # we do nothing.
             pass
         else:
@@ -168,10 +168,6 @@ def _chunkify(mb1, mb2, mb3, mb4, continuous=False):
         if chunk is not None:
             chunks += [chunk]
             bitmask |= (1 << layer)
-        else:
-            if continuous:
-                chunk = Chunk()
-                chunk.fill_sky()
     return chunks, bitmask, add_bitmask
 
 def chunkify(mb1, mb2, mb3, mb4, continuous=False):
@@ -181,6 +177,7 @@ def chunkify(mb1, mb2, mb3, mb4, continuous=False):
     """
     data = ''
     chunks, bitmask, add_bitmask = _chunkify(mb1, mb2, mb3, mb4, continuous)
+    #print "Got %s chunks" % (len(chunks),)
     # blockdata
     for chunk in chunks:
         data += chunk.w_bytes(chunk.blocks)
@@ -195,6 +192,8 @@ def chunkify(mb1, mb2, mb3, mb4, continuous=False):
     # add data:
     for chunk in chunks:
         data += chunk.w_half_bytes(chunk.add_data)
+    #print "Chunk data length %s" % (len(data),)
+    #print "Bitmask is %s" % hex(bitmask)
     # biome array if continuous
     if continuous:
         for chunk in chunks:

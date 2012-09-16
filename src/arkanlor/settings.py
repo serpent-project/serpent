@@ -57,7 +57,7 @@ TEMPLATE_LOADERS = (
 
 UOS_PORT = 2598, 2599
 CED_PORT = 2597
-NOTCH_PORT = 52597
+NOTCH_PORT = None #52597
 
 ROOT_URLCONF = 'arkanlor.urls'
 
@@ -74,14 +74,16 @@ INSTALLED_APPS = (
 LOGIN_POINTS = {
             'default': {'x': 390,
                         'y': 3770,
-                        'z': 10,
+                        'z': 20,
                         # more info like map / world?
                         }
                 }
 
 ARKANLOR_AUTO_REGISTER = True
-ARKANLOR_TICK_SPEED = 0.01
-ARKANLOR_TICK_LIMIT = 0.2
+ARKANLOR_TICK_SPEED = 0.01 # microticks
+ARKANLOR_SERVER_TICK = 0.2 # all server actions are based on this speed.
+ARKANLOR_TICK_LIMIT = 0.25 # give warning at this speed incursion and eat time.
+# @todo: integrators would improve speed.
 
 
 # root to default mul files

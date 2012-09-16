@@ -61,32 +61,35 @@ if __name__ == '__main__':
     lc.start(settings.ARKANLOR_TICK_SPEED)
     # run our network server.
     ports = settings.UOS_PORT
-    if not isinstance(ports, list) and not isinstance(ports, tuple):
-        ports = (ports,)
-    factory = ArkFactory(boulder)
-    for port in ports:
-        print "Establishing UOS Server endpoint at port %s" % port
-        endpoint = TCP4ServerEndpoint(reactor, port)
-        endpoint.listen(factory)
-
+    if not ports is None:
+        if not isinstance(ports, list) and not isinstance(ports, tuple):
+            ports = (ports,)
+        factory = ArkFactory(boulder)
+        for port in ports:
+            print "Establishing UOS Server endpoint at port %s" % port
+            endpoint = TCP4ServerEndpoint(reactor, port)
+            endpoint.listen(factory)
     ############ CED ###############
     ports = settings.CED_PORT
-    if not isinstance(ports, list) and not isinstance(ports, tuple):
-        ports = (ports,)
-    factory = CEDFactory(boulder)
-    for port in ports:
-        print "Establishing CentrED Server endpoint at port %s" % port
-        endpoint = TCP4ServerEndpoint(reactor, port)
-        endpoint.listen(factory)
+    if not ports is None:
+        if not isinstance(ports, list) and not isinstance(ports, tuple):
+            ports = (ports,)
+        factory = CEDFactory(boulder)
+        for port in ports:
+            print "Establishing CentrED Server endpoint at port %s" % port
+            endpoint = TCP4ServerEndpoint(reactor, port)
+            endpoint.listen(factory)
     ######### 
     ports = getattr(settings, 'NOTCH_PORT', [])
-    if not isinstance(ports, list) and not isinstance(ports, tuple):
-        ports = (ports,)
-    factory = MCFactory(boulder)
-    for port in ports:
-        print "Establishing Minecraft Server endpoint at port %s" % port
-        endpoint = TCP4ServerEndpoint(reactor, port)
-        endpoint.listen(factory)
+    if not ports is None:
+        # minecraft experimental
+        if not isinstance(ports, list) and not isinstance(ports, tuple):
+            ports = (ports,)
+        factory = MCFactory(boulder)
+        for port in ports:
+            print "Establishing Minecraft Server endpoint at port %s" % port
+            endpoint = TCP4ServerEndpoint(reactor, port)
+            endpoint.listen(factory)
     # bind console
     stdio.StandardIO(ConsoleCommandProtocol(factory))
     print "Arkanlor running."

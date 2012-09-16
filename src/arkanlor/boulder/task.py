@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 """
-    Unit Description
+    The Core of Boulder, the task, gives the ticks.
 
 @author: g4b
 
@@ -21,7 +21,7 @@ GNU General Public License for more details.
 
 import time
 import gamestate
-from Queue import PriorityQueue
+from Queue import PriorityQueue #@UnresolvedImport
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import check_password
@@ -40,19 +40,27 @@ class BoulderTask(object):
     def enqueue(self, something, priority):
         self.queue.put((priority, something))
 
+    def microtick(self, delta):
+        pass
+
+    def server_tick(self, delta):
+        pass
+
     def _run(self, delta):
         # check queue here.
         if delta > settings.ARKANLOR_TICK_LIMIT:
             print "tick speed exceeded: %s" % delta
         else:
             # do my thangs.
-            pass
+            # see if this is already a server tick.
+            self.microtick(delta)
+            self.server_tick(delta)
 
     def run(self):
         # time diff.
         t = time.time()
         diff = t - self.time
-        #
+        # psalm103-107
         self._run(diff)
         #
         self.time = t
