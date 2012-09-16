@@ -24,6 +24,7 @@ from arkanlor.console import stdio, ConsoleCommandProtocol
 from twisted.internet.task import LoopingCall
 from arkanlor.boulder.task import BoulderTask
 from twisted.internet.protocol import Factory
+from arkanlor.notch.factory import MCFactory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 from arkanlor.uos.protocol import UOS
@@ -51,9 +52,12 @@ class ArkFactory(Factory):
 
 if __name__ == '__main__':
     # build our world.
+    print "Arkanlor starting up..."
+    print "Loading Boulder."
     boulder = BoulderTask(reactor)
     # run our boulder server.
     lc = LoopingCall(boulder.run)
+    print "Start Ticking..."
     lc.start(settings.ARKANLOR_TICK_SPEED)
     # run our network server.
     ports = settings.UOS_PORT
@@ -72,6 +76,15 @@ if __name__ == '__main__':
     factory = CEDFactory(boulder)
     for port in ports:
         print "Establishing CentrED Server endpoint at port %s" % port
+        endpoint = TCP4ServerEndpoint(reactor, port)
+        endpoint.listen(factory)
+    ######### 
+    ports = getattr(settings, 'NOTCH_PORT', [])
+    if not isinstance(ports, list) and not isinstance(ports, tuple):
+        ports = (ports,)
+    factory = MCFactory(boulder)
+    for port in ports:
+        print "Establishing Minecraft Server endpoint at port %s" % port
         endpoint = TCP4ServerEndpoint(reactor, port)
         endpoint.listen(factory)
     # bind console

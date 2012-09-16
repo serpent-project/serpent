@@ -20,6 +20,7 @@ GNU General Public License for more details.
 """
 from arkanlor.dagrm.const import *
 import struct, string #@UnresolvedImport
+from arkanlor.utils import hexprint
 
 def packet_list(*packets):
     ret = {}
@@ -204,39 +205,61 @@ class Packet(object):
                     # it does however not affect reading it.
                     print "Please use Count with ALL parameters!"
                 t = l or BYTE
-            if not t:
-                values[key] = self.r_boolean()
-            elif t == BYTE:
-                values[key] = self.r_byte()
-            elif t == SBYTE:
-                values[key] = self.r_sbyte()
-            elif t == USHORT:
-                values[key] = self.r_ushort()
-            elif t == SHORT:
-                values[key] = self.r_short()
-            elif t == UINT:
-                values[key] = self.r_uint()
-            elif t == INT:
-                values[key] = self.r_int()
-            elif t == IPV4:
-                values[key] = self.r_ipv4()
-            elif t == FIXSTRING:
-                values[key] = self.r_fixstring(l)
-            elif t == CSTRING:
-                values[key] = self.r_cstring()
-            elif t == UCSTRING:
-                values[key] = self.r_ucstring()
-            elif t == PSTRING:
-                values[key] = self.r_pstring()
-            elif t == RAW:
-                # thats tricky.
-                # we read until nothing is left, actually
-                values[key], self._data = self._data, ''
-            else:
-                if l:
-                    values[key] = self.read_data(l)
+            try:
+                if not t:
+                    values[key] = self.r_boolean()
+                elif t == BYTE:
+                    values[key] = self.r_byte()
+                elif t == SBYTE:
+                    values[key] = self.r_sbyte()
+                elif t == USHORT:
+                    values[key] = self.r_ushort()
+                elif t == SHORT:
+                    values[key] = self.r_short()
+                elif t == UINT:
+                    values[key] = self.r_uint()
+                elif t == INT:
+                    values[key] = self.r_int()
+                elif t == IPV4:
+                    values[key] = self.r_ipv4()
+                elif t == FIXSTRING:
+                    values[key] = self.r_fixstring(l)
+                elif t == CSTRING:
+                    values[key] = self.r_cstring()
+                elif t == UCSTRING:
+                    values[key] = self.r_ucstring()
+                elif t == PSTRING:
+                    values[key] = self.r_pstring()
+                elif t == FLOAT:
+                    values[key] = self.r_float()
+                elif t == DOUBLE:
+                    values[key] = self.r_double()
+                elif t == US646:
+                    values[key] = self.r_us646()
+                    pass
+                elif t == RAW:
+                    # thats tricky.
+                    # we read until nothing is left, actually
+                    values[key], self._data = self._data, ''
                 else:
-                    raise DatagramException('Unknown Packet in Datagram')
+                    if l:
+                        values[key] = self.read_data(l)
+                    else:
+                        raise DatagramException('Unknown Packet in Datagram')
+            except Exception, e:
+                print "="*80
+                print "datagram read exception"
+                print e
+                print "-"*80
+                print "type(d): %s, d=%s" % (type(d), str(d))
+                print "type(t): %s, t=%s" % (type(t), str(t))
+                try:
+                    hexprint(self._data)
+                except:
+                    pass
+                print "="*80
+                raise
+
 
     def write_datagram(self, datagram, values=None):
         if isinstance(datagram, ReadWriteDatagram):
@@ -304,6 +327,12 @@ class Packet(object):
                     self.w_boolean(d)
                 elif t == RAW:
                     self.write_data(d)
+                elif t == FLOAT:
+                    self.w_float(d)
+                elif t == DOUBLE:
+                    self.w_double(d)
+                elif t == US646:
+                    self.w_us646(d)
                 else:
                     raise DatagramException('Unknown Packet in Datagram')
             except Exception, e:
@@ -408,6 +437,18 @@ class Packet(object):
     def r_ipv4(self):
         return string.join(map(str, struct.unpack('%s4B' % self.flow, self.read_data(4))), '.')
 
+    def r_float(self):
+        return struct.unpack('%sf' % self.flow, self.read_data(4))[0]
+
+    def r_double(self):
+        return struct.unpack('%sd' % self.flow, self.read_data(8))[0]
+
+    def r_us646(self):
+        l = self.r_short()
+        if l:
+            return self.read_data(l).decode('utf-16be')
+        return ''
+
     ### Writing
 
     def w_uint(self, x):
@@ -468,6 +509,22 @@ class Packet(object):
             self.write_data(struct.pack('%s4B' % self.flow, *x))
         else:
             raise DatagramException, "Ipv4 invalid?"
+
+    def w_float(self, x):
+        self.write_data(struct.pack('%sf' % self.flow, float(x)))
+
+    def w_double(self, x):
+        self.write_data(struct.pack('%sd' % self.flow, float(x)))
+
+    def w_us646(self, x): # utf 16 short-pstring.
+        # encode our string
+        s = x.encode('utf-16be')
+        #s = s.replace('\x00', '\x20')
+        self.w_short(len(x))
+        self.write_data(s)
+
+
+
 
 class PacketReader(object):
     """

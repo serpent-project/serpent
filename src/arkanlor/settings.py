@@ -57,6 +57,8 @@ TEMPLATE_LOADERS = (
 
 UOS_PORT = 2598, 2599
 CED_PORT = 2597
+NOTCH_PORT = 52597
+
 ROOT_URLCONF = 'arkanlor.urls'
 
 VERSIONSTRING = 'Arkanlor v0.1'
@@ -72,7 +74,7 @@ INSTALLED_APPS = (
 LOGIN_POINTS = {
             'default': {'x': 390,
                         'y': 3770,
-                        'z': 1,
+                        'z': 10,
                         # more info like map / world?
                         }
                 }
@@ -80,6 +82,7 @@ LOGIN_POINTS = {
 ARKANLOR_AUTO_REGISTER = True
 ARKANLOR_TICK_SPEED = 0.01
 ARKANLOR_TICK_LIMIT = 0.2
+
 
 # root to default mul files
 ARKANLOR_MULS = os.path.join(PROJECT_ROOT, 'muls')

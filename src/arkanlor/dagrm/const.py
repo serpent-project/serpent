@@ -32,14 +32,19 @@ UINT = 0x05
 INT = 0x06
 CARDINAL = UINT # same thing.
 IPV4 = 0x15
+# 8 byte types
+LONG = 0x08
 #IPV6 
 # variable types
 FIXSTRING = 0xa0
 CSTRING = 0xa1
 PSTRING = 0xa2
 UCSTRING = 0xb1
-SPEECHSTRING = 0xc0 # 
+SPEECHSTRING = 0xc0 # custom string type - not used.
+US646 = 0xc1 # custom string type US-ASCII/ISO646-US encoded string padded with spaces (0x20)
 COUNT = 0xcc # count is a write helper. usage: ('count', COUNT, BYTE, 'items')
+FLOAT = 0xf0 # 4 byte float
+DOUBLE = 0xfd # 8 byte float
 RAW = 0xff # read rest of packet. write out directly.
 
 class DatagramException(Exception):

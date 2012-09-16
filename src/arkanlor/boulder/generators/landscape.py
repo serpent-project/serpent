@@ -3,6 +3,7 @@ from arkanlor.misc.geology import MidpointDisplacementNoise, PerlinNoise, \
     CombineNeighbours, Voronoi, WhiteNoise
 from arkanlor.boulder.generators import biomes
 import numpy
+from arkanlor.boulder.generators.biomes import Continent
 
 class BiomeMapSync(MapSync):
     def load_block(self, mapblock):
@@ -10,21 +11,22 @@ class BiomeMapSync(MapSync):
         east, north, south, west = mapblock.parent.get_neighbours(mapblock)
         if east or north or south or west:
             if east:
-                east = east.heights
+                east = east.height_map
             if north:
-                north = north.heights
+                north = north.height_map
             if south:
-                south = south.heights
+                south = south.height_map
             if west:
-                west = west.heights
+                west = west.height_map
             z = numpy.zeros(BLOCK_SHAPE)
             z = CombineNeighbours(z, east, north, south, west)
-            height_map = numpy.square(self.parent.height_noise(BLOCK_SHAPE, z=z).smooth4().normalize().z)
+            mapblock.height_map = numpy.square(self.parent.height_noise(BLOCK_SHAPE, z=z).smooth4().normalize().z)
         else:
-            height_map = numpy.square(self.parent.height_noise(BLOCK_SHAPE).smooth4().normalize().z)
-        tile_map = self.parent.tile_noise(BLOCK_SHAPE).smooth().z
+            mapblock.height_map = numpy.square(self.parent.height_noise(BLOCK_SHAPE).smooth4().normalize().z)
+        mapblock.tile_map = self.parent.tile_noise(BLOCK_SHAPE).smooth().z
+
         # get my biome.
-        self.parent.get_biome(mapblock).apply(mapblock, height_map, tile_map)
+        self.parent.get_biome(mapblock).apply(mapblock)
 
 class BiomeMap(Map):
     def __init__(self, parent,
@@ -38,9 +40,19 @@ class BiomeMap(Map):
         self.tile_noise = tile_noise
         self.sea_level = sea_level
         self.biomes = {}
+        self.continents = {}
         if not sync:
             sync = BiomeMapSync(self)
         super(BiomeMap, self).__init__(parent, size, sync)
+
+    def get_continent(self, bbx, bby):
+        cx = int(numpy.floor(bbx / 8.0))
+        cy = int(numpy.floor(bby / 8.0))
+        c = self.continents.get((cx, cy), None)
+        if c is None:
+            c = Continent()
+            self.continents[cx, cy] = c
+        return c
 
     def get_biome(self, block):
         # heh.
@@ -52,13 +64,7 @@ class BiomeMap(Map):
             biomemap = self.biomes[bbx, bby]
         except KeyError:
             # create a new biome map.
-            biomemap = []
-            noise = Voronoi((8, 8)).normalize()
-            for x in xrange(8):
-                row = []
-                for y in xrange(8):
-                    row += [ biomes.get_biome(noise.z[x, y]) ]
-                biomemap += [row]
+            biomemap = self.get_continent(bbx, bby).build_biome_map(bbx, bby)
             self.biomes[bbx, bby] = biomemap
         return biomemap[brx][bry]
 

@@ -44,6 +44,22 @@ class RandomGrassSync(MapSync):
                 mapblock.tiles[rx, ry] = 0x3 + numpy.random.randint(0, 3)
                 mapblock.heights[rx, ry] = 2 + numpy.random.randint(0, 3)
 
+class StaticItem(object):
+    __slots__ = ['parent', 'art', 'rx', 'ry', 'z', 'color']
+    def __init__(self, parent, art, rx, ry, z=0, color=0):
+        self.parent = parent
+        self.art = art
+        self.rx = rx
+        self.ry = ry
+        self.z = z
+        self.color = color
+    def packet_info(self):
+        return {'rx': self.rx,
+                'ry': self.ry,
+                'z': self.z,
+                'color': self.color,
+                'art': self.art
+                }
 
 class MapBlock:
     # defines a walkable grid
@@ -51,7 +67,9 @@ class MapBlock:
                  offset_x=0, # bx * 8
                  offset_y=0, # by * 8
                  header=0):
+        # parenting
         self.parent = parent
+        # positions
         if not offset_x % SHAPE_X:
             offset_x = offset_x - offset_x % SHAPE_X
         if not offset_y % SHAPE_Y:
@@ -59,12 +77,34 @@ class MapBlock:
         self.header = header or 0
         self.offset_x, self.offset_y = offset_x, offset_y
         self.bx, self.by = self.offset_x / SHAPE_X, self.offset_y / SHAPE_Y
+        # mapdata
         self.flags = numpy.zeros(BLOCK_SHAPE, dtype=int) # flag matrix
         self.tiles = numpy.zeros(BLOCK_SHAPE, dtype=int) # tile matrix.
         self.heights = numpy.zeros(BLOCK_SHAPE, dtype=int) # heightmap
-        self.items = [[] for x in xrange(64)] # 8x8
+        self.groups = numpy.zeros(BLOCK_SHAPE, dtype=int) # groups
+        # noises:
+        self.height_map = None
+        self.tile_map = None
+        # statics
+        self.clear_statics()
+        # syncing
         self._synced = None
         self.sync()
+
+    def clear_statics(self):
+        self.statics = [ [[] for x in xrange(8)] for y in xrange(8)] # 8x8
+
+    def has_static(self, x, y, static=None):
+        if static is not None:
+            for item in self.statics[x % 8][y % 8]:
+                if item.art == static.art:
+                    return True
+            return False
+        else:
+            return len(self.statics[x % 8][y % 8]) > 0
+
+    def add_static(self, x, y, static):
+        self.statics[x % 8][y % 8] += [static]
 
     def _sync(self):
         """ Override this to write your custom sync method.
@@ -98,10 +138,18 @@ class MapBlock:
                  for y in xrange(SHAPE_Y) for x in xrange(SHAPE_X)
                  ]
 
-    def get_statics(self):
+    def get_statics_linear(self):
         ret = []
-        for cell in self.items:
-            ret += cell
+        for y in xrange(8):
+            for x in xrange(8):
+                ret += self.statics[x][y]
+        return ret
+
+    def _statics_packet_info(self):
+        ret = []
+        lin = self.get_statics_linear()
+        for l in lin:
+            ret += [l.packet_info()]
         return ret
 
     def packet_info(self):
@@ -109,7 +157,7 @@ class MapBlock:
                 'bx': self.bx,
                 'by': self.by,
                 'cells': self.get_cells(),
-                'statics': self.get_statics()
+                'statics': self._statics_packet_info()
                 }
 
 
@@ -146,6 +194,17 @@ class Map(object):
             west = self.get_block_or_none(bx - 1, by)
         return (east, north, south, west)
 
+    def get_blocks16(self, x, y):
+        b16x = (x - x % 16) / 16
+        b16y = (y - y % 16) / 16
+        bx = b16x * 2
+        by = b16y * 2
+        # need to verify constraints here!
+        mb1 = self.get_block(bx, by)
+        mb2 = self.get_block(bx + 1, by)
+        mb3 = self.get_block(bx, by)
+        mb4 = self.get_block(bx + 1, by + 1)
+        return (mb1, mb2, mb3, mb4)
 
     def block(self, x, y):
         """

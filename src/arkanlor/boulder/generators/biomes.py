@@ -5,6 +5,8 @@
     layout of your world.
 """
 import numpy
+from arkanlor.misc.geology import Voronoi, MidpointDisplacementNoise
+from arkanlor.boulder.generators.const import UOTiles
 
 def select_tile(tile_list, f):
     # selects a tile from tile_list.
@@ -13,24 +15,85 @@ def select_tile(tile_list, f):
         f = 0.99
     return tile_list[ int(numpy.floor(l * f)) ]
 
-class UOTiles:
-    water = [0xa8 + x for x in xrange(4)]
-    water_deep = [0x136, 0x137]
-    grass = [0x3 + x for x in xrange(3)]
-    rock = [0x22c + x for x in xrange(3)]
-    sand = [0x16 + x for x in xrange(4)]
-    dirt = [0x75 + x for x in xrange(4)]
-    dirt_stones = [0x71 + x for x in xrange(4)]
+class Continent(object):
+
+    def __init__(self):
+        self.continent_layout = MidpointDisplacementNoise((8, 8)).normalize().z
+
+    def layout_type(self, bbx, bby):
+        # this generates our biome_types.
+        cx, cy = bbx % 8, bby % 8
+        return select_tile([
+
+        # waterland
+        [   (0.0, 0.9, DeepSea()),
+            (0.9, 0.95, ShallowSea()),
+            (0.95, 1.1, Coastal()),
+        ],
+        # green lands
+        [   (0.0, 0.02, DeepSea()),
+            (0.02, 0.05, ShallowSea()),
+            (0.05, 0.15, Coastal()),
+            (0.15, 1.1, GrassLand()),
+        ],
+        # murky green lands
+        [
+            (0.00, 0.02, ShallowSea()),
+            (0.02, 0.04, Coastal()),
+            (0.04, 0.7, MurkyGrassLand()),
+            (0.7, 1.1, GrassLand()),
+        ],
+        # rocky lands
+        [   (0.0, 0.4, GrassLand()),
+            (0.4, 1.1, Rocks()),
+        ],
+        # swamps
+        # forests
+
+        # Elevation level: 10
+
+        # rocky lands
+        [   (0.0, 0.4, GrassLand(10)),
+            (0.4, 0.9, Rocks(10)),
+            (0.9, 0.95, Mountains(10)),
+            (0.95, 1.1, Mountains(20)),
+        ],
+        # highlands
+        [   (0.0, 0.3, Rocks(10)),
+            (0.3, 0.4, HighLands(10)),
+            (0.4, 0.6, Mountains(35)),
+            (0.6, 0.9, Mountains(40)),
+            (0.9, 1.1, Mountains(50)),
+        ],
+
+                            ],
+                           self.continent_layout[cx, cy])
+
+    def build_biome_map(self, bbx, bby):
+        biomemap = []
+        noise = Voronoi((8, 8)).normalize()
+        for x in xrange(8):
+            row = []
+            for y in xrange(8):
+                row += [ get_biome(noise.z[x, y], self.layout_type(bbx, bby)) ]
+            biomemap += [row]
+        return biomemap
 
 class Biome(object):
     """
         a biome represents, how this area is populated.
     """
+    def __init__(self, height=None):
+        self.height = height or 0
     def apply_cell(self, mapblock, rx, ry, hf, tf):
         mapblock.tiles[rx, ry] = 0x0
         mapblock.heights[rx, ry] = 0
 
-    def apply(self, mapblock, height_map, tile_map):
+    def apply(self, mapblock, height_map=None, tile_map=None):
+        if height_map is None:
+            height_map = mapblock.height_map
+        if tile_map is None:
+            tile_map = mapblock.tile_map
         for rx in xrange(8):
             for ry in xrange(8):
                 hf = height_map[rx, ry]
@@ -49,53 +112,95 @@ class DeepSea(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
         if hf < 0.1:
             mapblock.tiles[rx, ry] = select_tile(UOTiles.water_deep, tf)
-            mapblock.heights[rx, ry] = 0
+            mapblock.heights[rx, ry] = self.height
+        else:
+            # water normal.
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.water, tf)
+            mapblock.heights[rx, ry] = self.height
+
+class ShallowSea(Biome):
+    def apply_cell(self, mapblock, rx, ry, hf, tf):
+        if hf < 0.1:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.water_deep, tf)
+            mapblock.heights[rx, ry] = self.height
         elif hf < 0.94:
             # water normal.
             mapblock.tiles[rx, ry] = select_tile(UOTiles.water, tf)
-            mapblock.heights[rx, ry] = 0
+            mapblock.heights[rx, ry] = self.height
         else:
             mapblock.tiles[rx, ry] = select_tile(UOTiles.sand, tf)
-            mapblock.heights[rx, ry] = int(hf * 2)
-
+            mapblock.heights[rx, ry] = self.height + int(hf * 2)
 
 class Coastal(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
         if hf < 0.2:
             # water normal.
             mapblock.tiles[rx, ry] = select_tile(UOTiles.water, tf)
-            mapblock.heights[rx, ry] = 0
+            mapblock.heights[rx, ry] = self.height
         elif hf < 0.4:
             # sandcoast
             mapblock.tiles[rx, ry] = select_tile(UOTiles.sand, tf)
-            mapblock.heights[rx, ry] = int(hf * 8)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8)
         else:
             # grass or dirt or smth
             mapblock.tiles[rx, ry] = select_tile(UOTiles.grass, tf)
-            mapblock.heights[rx, ry] = int(hf * 8)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8)
 
 class GrassLand(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
         # grass or dirt or smth
         mapblock.tiles[rx, ry] = select_tile(UOTiles.grass, tf)
-        mapblock.heights[rx, ry] = int(hf * 8)
+        mapblock.heights[rx, ry] = self.height + int(hf * 8)
+
+class MurkyGrassLand(Biome):
+    def apply_cell(self, mapblock, rx, ry, hf, tf):
+        # grass or dirt or smth
+        if hf < 0.4:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.grass_murky, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8)
+        else:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.grass, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8)
 
 class Rocks(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
         if hf < 0.05:
             mapblock.tiles[rx, ry] = select_tile(UOTiles.grass, tf)
-            mapblock.heights[rx, ry] = int(hf * 8)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8)
         elif hf < 0.25:
             # dirt
             mapblock.tiles[rx, ry] = select_tile(UOTiles.dirt, tf)
-            mapblock.heights[rx, ry] = int(hf * 8)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8)
         elif hf < 0.4:
             # rocksides
             mapblock.tiles[rx, ry] = select_tile(UOTiles.dirt_stones, tf)
-            mapblock.heights[rx, ry] = int(hf * 8) + 2
+            mapblock.heights[rx, ry] = self.height + int(hf * 8) + 2
         else:
             mapblock.tiles[rx, ry] = select_tile(UOTiles.rock, tf)
-            mapblock.heights[rx, ry] = int(hf * 16) + 6
+            mapblock.heights[rx, ry] = self.height + int(hf * 16) + 6
+
+class HighLands(Biome):
+    def apply_cell(self, mapblock, rx, ry, hf, tf):
+        if hf < 0.15:
+            # dirt
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.dirt, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8) + 5
+        elif hf < 0.3:
+            # rocksides
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.dirt_stones, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 8) + 6
+        else:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.rock, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 16) + 12
+
+class Mountains(Biome):
+    def apply_cell(self, mapblock, rx, ry, hf, tf):
+        if hf < 0.5:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.rock, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 16) + 12
+        else:
+            mapblock.tiles[rx, ry] = select_tile(UOTiles.snow, tf)
+            mapblock.heights[rx, ry] = self.height + int(hf * 16) + 13
 
 
 # used to scatter biomes themselves.
