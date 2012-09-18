@@ -8,7 +8,7 @@
 """
 from arkanlor.dagrm import packet_list, BYTE, SHORT, USHORT, UINT, RAW, \
     CSTRING, FIXSTRING, IPV4, BOOLEAN, SBYTE, SubPackets, ReadWriteDatagram, \
-    WORD, CARDINAL, COUNT, FLOAT, DOUBLE, US646, INT, UCSTRING
+    WORD, CARDINAL, COUNT, FLOAT, DOUBLE, UCS2, INT, UCSTRING
 from arkanlor.notch.packet import MCPacket as Packet, MCPacketReader
 from arkanlor.dagrm.extended import DatagramCountLoop, DatagramIf, \
     DatagramPacket, DatagramSub, DatagramEndLoop
@@ -22,8 +22,8 @@ class DisconnectServerInfo(Packet):
     p_id = 0xff
     p_type = P_BOTH
     p_length = None
-    _datagram = [('reason', US646), # {0}§{1}§{2}
-                 #('other', US646),
+    _datagram = [('reason', UCS2), # {0}§{1}§{2}
+                 #('other', UCS2),
                  #(0, USHORT, None, 0xa7),
                  #('online', USHORT),
                  ]
@@ -42,7 +42,7 @@ class Handshake(Packet):
     p_length = None
     _datagram = ReadWriteDatagram(
                     [('connection', RAW), ],
-                    [('hash', US646, None, '-')] # no encryption.
+                    [('hash', UCS2, None, '-')] # no encryption.
                     )
 
                  #('version', SBYTE),
@@ -50,8 +50,8 @@ class Handshake(Packet):
                  #DatagramIf('version', lambda x: x == 0,
                  #           when_true=DatagramSub([('connection', RAW)]),
                  #           else_do=DatagramSub(
-                 #                       [('username', US646),
-                 #                        ('host', US646),
+                 #                       [('username', UCS2),
+                 #                        ('host', UCS2),
                  #                        ('port', INT), ]
                  #                               ))
 
@@ -77,8 +77,8 @@ class LoginRequest(Packet):
     p_length = None
     _datagram = ReadWriteDatagram(
                 [('version', INT, None, protocol_version),
-                 ('username', US646),
-                 ('unused1', US646),
+                 ('username', UCS2),
+                 ('unused1', UCS2),
                  ('unused2', INT),
                  ('unused3', INT),
                  ('unused4', SBYTE),
@@ -87,7 +87,7 @@ class LoginRequest(Packet):
                  ],
                 [
             ('entity_id', INT),
-            ('level_type', US646, None, 'default'),
+            ('level_type', UCS2, None, 'default'),
             ('game_mode', SBYTE), # 0:survival, 1:creative, 2:adventure, 0x8:hardcore flag
             ('dimension', SBYTE), # -1 nether, 0 normal, 1 end
             ('difficulty', SBYTE, None, 1), # peaceful, easy, normal, hard 0-3
@@ -140,13 +140,13 @@ class Respawn(Packet):
                  ('difficulty', BYTE),
                  ('game_mode', BYTE),
                  ('world_height', SHORT, None, 256),
-                 ('level_type', US646, None, 'default')]
+                 ('level_type', UCS2, None, 'default')]
 # inventory
 class OpenWindow(Packet):
     p_id = 0x64
     _datagram = [('id', SBYTE),
                  ('type', SBYTE),
-                 ('title', US646),
+                 ('title', UCS2),
                  ('slots', SBYTE)
                  ]
 
@@ -209,7 +209,7 @@ class Message(Packet):
     p_id = 0x03
     p_length = None
     p_type = P_BOTH
-    _datagram = [('message', US646)]
+    _datagram = [('message', UCS2)]
 
 
 server_parsers = packet_list(
