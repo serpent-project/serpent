@@ -11,77 +11,15 @@ from arkanlor.boulder.generators.const import UOTiles
 def select_tile(tile_list, f):
     # selects a tile from tile_list.
     l = len(tile_list) # total number of tiles.
+    if not l:
+        return 0x1
     if f >= 1.0:
         f = 0.99
     return tile_list[ int(numpy.floor(l * f)) ]
 
-class Continent(object):
-
-    def __init__(self):
-        self.continent_layout = MidpointDisplacementNoise((8, 8)).normalize().z
-
-    def layout_type(self, bbx, bby):
-        # this generates our biome_types.
-        cx, cy = bbx % 8, bby % 8
-        return select_tile([
-
-        # waterland
-        [   (0.0, 0.9, DeepSea()),
-            (0.9, 0.95, ShallowSea()),
-            (0.95, 1.1, Coastal()),
-        ],
-        # green lands
-        [   (0.0, 0.02, DeepSea()),
-            (0.02, 0.05, ShallowSea()),
-            (0.05, 0.15, Coastal()),
-            (0.15, 1.1, GrassLand()),
-        ],
-        # murky green lands
-        [
-            (0.00, 0.02, ShallowSea()),
-            (0.02, 0.04, Coastal()),
-            (0.04, 0.7, MurkyGrassLand()),
-            (0.7, 1.1, GrassLand()),
-        ],
-        # rocky lands
-        [   (0.0, 0.4, GrassLand()),
-            (0.4, 1.1, Rocks()),
-        ],
-        # swamps
-        # forests
-
-        # Elevation level: 10
-
-        # rocky lands
-        [   (0.0, 0.4, GrassLand(10)),
-            (0.4, 0.9, Rocks(10)),
-            (0.9, 0.95, Mountains(10)),
-            (0.95, 1.1, Mountains(20)),
-        ],
-        # highlands
-        [   (0.0, 0.3, Rocks(10)),
-            (0.3, 0.4, HighLands(10)),
-            (0.4, 0.6, Mountains(35)),
-            (0.6, 0.9, Mountains(40)),
-            (0.9, 1.1, Mountains(50)),
-        ],
-
-                            ],
-                           self.continent_layout[cx, cy])
-
-    def build_biome_map(self, bbx, bby):
-        biomemap = []
-        noise = Voronoi((8, 8)).normalize()
-        for x in xrange(8):
-            row = []
-            for y in xrange(8):
-                row += [ get_biome(noise.z[x, y], self.layout_type(bbx, bby)) ]
-            biomemap += [row]
-        return biomemap
-
 class Biome(object):
     """
-        a biome represents, how this area is populated.
+        a biome represents, how this area 8x8 is populated.
     """
     def __init__(self, height=None):
         self.height = height or 0
@@ -107,6 +45,10 @@ class Biome(object):
                 # we set ourselves to None.
                 self.apply_cell(mapblock, rx, ry, hf, tf)
 
+class Blackness(Biome):
+    def apply_cell(self, mapblock, rx, ry, hf, tf):
+        mapblock.tiles[rx, ry] = 0x244 # noname blackness.
+        mapblock.heights[rx, ry] = 0
 
 class DeepSea(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
@@ -212,7 +154,7 @@ default_biomes = [
         (0.7, 1.1, Rocks()),
           ]
 
-def get_biome(f, biomes=default_biomes):
+def get_biome_by_range(f, biomes=default_biomes):
     for biome in biomes:
         lo, hi, b = biome
         if f >= lo and (f < hi):

@@ -23,6 +23,7 @@ import numpy
 from arkanlor.boulder.map import UOMap, Map
 from arkanlor.boulder.generators.landscape import BiomeMap
 from django.conf import settings
+from arkanlor.boulder.generators.continents import UOContinent
 
 DIR_N = 0x00
 DIR_NE = 0x01
@@ -56,6 +57,15 @@ class BoulderState(object):
         self.free_id = 0x0222
         self.worldmap_db = models.WorldMap.objects.get(name='default')
         self.worldmap = BiomeMap(self, size=settings.DEFAULT_MAP0_SIZE)
+        self.worldmap.continents.register_continent(
+                                        UOContinent(
+                                            (128, 128),
+                                            1, 16,
+                                            mapmul=settings.DEFAULT_MAP0,
+                                            map_offset_bx=15,
+                                            map_offset_by=480,
+                                                    )
+                                                    )
 
     def get_map(self):
         return self.worldmap

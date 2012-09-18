@@ -1,0 +1,101 @@
+// Ryandor's Mod 10
+//
+// betweentrans.txt
+//KEY
+//[first group] [second group] [file to parse for transition]
+// ***************************
+//grass
+//00 01 grass2forest.txt
+//00 03 grass2swamp.txt
+//00 05 grass2sand.txt
+//00 07 grass2jungle.txt
+//00 08 grass2dirt.txt
+//00 0a grass2rock.txt
+//14 00 grass2sandbrickns.txt
+// ***************************
+//forest
+//01 07 forest2jungle.txt
+//01 08 forest2dirt.txt
+//01 0a forest2rock.txt
+// ***************************
+//sand
+//05 07 sand2jungle.txt
+//05 08 sand2dirt.txt
+//05 0a sand2rock.txt
+// ***************************
+//snow
+//06 08 snow2dirt.txt
+//06 0a snow2rock.txt
+// ***************************
+//jungle
+//07 08 jungle2dirt.txt
+// ***************************
+//dirt
+//08 0f dirt2cobble.txt
+// ***************************
+//cave
+//09 08 cave2dirt.txt
+// ***************************
+//coastlines
+//00 02 grass2water-light.txt
+//18 02 grass2water-light.txt
+00 02 grass2water-dark.txt
+18 02 grass2water-dark.txt
+//01 02 forest2water.txt
+//19 02 forest2water.txt
+//07 02 jungle2water.txt
+//1a 02 jungle2water.txt
+//08 02 dirt2water.txt
+//1b 02 dirt2water.txt
+//
+//05 02 sand2water.txt
+//06 02 snow2water.txt (buggy)
+//1f 02 beach2water.txt
+// ***************************
+//black
+//04 black2dunnew.txt
+// ***************************
+//lava
+//1a 2lava.txt*
+// ***************************
+//other
+//00 1c grass2rgrass.txt
+//1c 03 rgrass2swamp.txt
+
+//00 1e grass2furrows.txt
+//18 1e grassb2furrows.txt
+
+//18 0a cave-ent2rock.txt
+//19 0a cave-enti2rock.txt
+
+//01 03 forest2swamp.txt
+
+
+// ***************************
+//T2A trans
+
+//18 00 T2Agrass2grass.txt
+//01 15 T2Aforest2forest.txt
+//19 00 T2Aforest2grass.txt
+//15 08 T2Aforest2dirt.txt
+//1a 08 T2Ajungle2dirt.txt
+//1a 00 T2Ajungle2grass.txt
+//18 08 T2Agrass2dirt.txt
+
+18 00 T2Agrass2grass.txt
+//18 01 T2Agrass2forest
+//18 07 T2Agrass2jungle
+
+19 00 T2Aforest2grass.txt
+19 01 T2Aforest2forest.txt
+//19 07 T2Aforest2jungle
+
+1a 00 T2Ajungle2grass.txt
+//1a 01 T2Ajungle2forest
+//1a 07 T2Ajungle2jungle
+
+1b 00 T2Adirt2grass.txt
+//1b 01 T2Adirt2forest
+1b 07 T2Adirt2jungle.txt
+
+

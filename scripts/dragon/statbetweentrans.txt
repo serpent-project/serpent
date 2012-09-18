@@ -1,0 +1,67 @@
+//0f 04 sandstone2black.txt
+//04 0f black2sandstone.txt
+//03 04 cavelow2black.txt
+//14 04 marble2black.txt
+//04 14 black2marble.txt
+//0e 04 dunegon2black.txt
+//04 0e black2dunegon.txt
+//newcave mod:
+//04 03 black2caveRand.txt 
+//04 03 black2caveWalls.txt 
+//03 04 cave2blackRand.txt 
+//03 04 cave2blackRalls.txt
+//forest2swamp mod:
+//18 01 swamp2forestb.txt
+//01 18 forest2swampb.txt
+////////////////////////////////
+//dungeon house in cave
+////////////////////////////////
+//03 11 roof.txt
+//11 03 roof2.txt
+//11 03 stone2cave.txt
+//03 11 cave2stone.txt
+//11 03 rooftopfloor2.txt
+////////////////////////////////
+//lava borders
+////////////////////////////////
+//06 10 mountain2lava.txt
+//10 06 lava2mountain.txt
+//10 00 lava2grass.txt
+//00 10 grass2lava.txt
+//10 01 lava2forest.txt
+//01 10 forest2lava.txt
+//10 05 lava2desert.txt
+//05 10 desert2lava.txt
+//10 07 lava2snow.txt
+//07 10 snow2lava.txt
+//10 08 lava2jungle.txt
+//08 10 jungle2lava.txt
+//10 09 lava2dirt.txt
+//09 10 dirt2lava.txt
+//10 18 lava2swamp.txt
+//18 10 swamp2lava.txt
+//10 1b lava2star.txt
+//1b 10 star2lava.txt
+//10 03 lava2cave.txt
+//03 10 cave2lava.txt
+////////////////////////////////
+//starfield 2 all test
+////////////////////////////////
+//00 1b rock2grass.txt
+//19 1b rock2grassb.txt
+//20 1b rock2rgrass.txt
+//01 1b rock2forest.txt
+//05 1b rock2sand.txt
+//06 1b rock2mountain.txt
+//07 1b rock2snow.txt
+//08 1b rock2jungle.txt
+//09 1b rock2dirt.txt
+//1b 00 star2grass.txt
+//1b 19 star2grassb.txt
+//1b 20 star2rgrass.txt
+//1b 01 star2forest.txt
+//1b 05 star2sand.txt
+//1b 06 star2mountain.txt
+//1b 07 star2snow.txt
+//1b 08 star2jungle.txt
+//1b 09 star2dirt.txt

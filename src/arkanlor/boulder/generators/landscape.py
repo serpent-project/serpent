@@ -3,7 +3,9 @@ from arkanlor.misc.geology import MidpointDisplacementNoise, PerlinNoise, \
     CombineNeighbours, Voronoi, WhiteNoise
 from arkanlor.boulder.generators import biomes
 import numpy
-from arkanlor.boulder.generators.biomes import Continent
+from arkanlor.boulder.generators.continents import ContinentManager, \
+    ExampleContinent
+from arkanlor.boulder.generators.dragonmap import SimpleDragonContinent
 
 class BiomeMapSync(MapSync):
     def load_block(self, mapblock):
@@ -40,32 +42,14 @@ class BiomeMap(Map):
         self.tile_noise = tile_noise
         self.sea_level = sea_level
         self.biomes = {}
-        self.continents = {}
+        self.continents = ContinentManager()
+        self.continents.register_continent(ExampleContinent((1024, 16), 10, 1))
+        self.continents.register_continent(SimpleDragonContinent((8, 8), 1, 1))
         if not sync:
             sync = BiomeMapSync(self)
         super(BiomeMap, self).__init__(parent, size, sync)
 
-    def get_continent(self, bbx, bby):
-        cx = int(numpy.floor(bbx / 8.0))
-        cy = int(numpy.floor(bby / 8.0))
-        c = self.continents.get((cx, cy), None)
-        if c is None:
-            c = Continent()
-            self.continents[cx, cy] = c
-        return c
-
     def get_biome(self, block):
-        # heh.
-        bbx = int(numpy.floor(block.bx / 8.0))
-        bby = int(numpy.floor(block.by / 8.0))
-        brx = block.bx % 8
-        bry = block.by % 8
-        try:
-            biomemap = self.biomes[bbx, bby]
-        except KeyError:
-            # create a new biome map.
-            biomemap = self.get_continent(bbx, bby).build_biome_map(bbx, bby)
-            self.biomes[bbx, bby] = biomemap
-        return biomemap[brx][bry]
+        return self.continents.get_biome(block)
 
 
