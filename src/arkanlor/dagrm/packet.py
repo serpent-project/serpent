@@ -21,6 +21,7 @@ GNU General Public License for more details.
 from arkanlor.dagrm.const import *
 import struct, string #@UnresolvedImport
 from arkanlor.utils import hexprint
+import ucs2
 
 def packet_list(*packets):
     ret = {}
@@ -234,8 +235,8 @@ class Packet(object):
                     values[key] = self.r_float()
                 elif t == DOUBLE:
                     values[key] = self.r_double()
-                elif t == US646:
-                    values[key] = self.r_us646()
+                elif t == UCS2:
+                    values[key] = self.r_ucs2()
                     pass
                 elif t == RAW:
                     # thats tricky.
@@ -331,8 +332,8 @@ class Packet(object):
                     self.w_float(d)
                 elif t == DOUBLE:
                     self.w_double(d)
-                elif t == US646:
-                    self.w_us646(d)
+                elif t == UCS2:
+                    self.w_ucs2(d)
                 else:
                     raise DatagramException('Unknown Packet in Datagram')
             except Exception, e:
@@ -443,10 +444,10 @@ class Packet(object):
     def r_double(self):
         return struct.unpack('%sd' % self.flow, self.read_data(8))[0]
 
-    def r_us646(self):
-        l = self.r_short()
+    def r_ucs2(self):
+        l = self.r_ushort()
         if l:
-            return self.read_data(l * 2).decode('utf-16be')
+            return self.read_data(l * 2).decode('ucs2')
         return ''
 
     ### Writing
@@ -516,11 +517,11 @@ class Packet(object):
     def w_double(self, x):
         self.write_data(struct.pack('%sd' % self.flow, float(x)))
 
-    def w_us646(self, x): # utf 16 short-pstring.
+    def w_ucs2(self, x): # utf 16 short-pstring.
         # encode our string
-        s = x.encode('utf-16be')
+        s = x.encode('ucs2')
         #s = s.replace('\x00', '\x20')
-        self.w_short(len(x))
+        self.w_ushort(len(s) / 2)
         self.write_data(s)
 
 
