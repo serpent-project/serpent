@@ -91,7 +91,7 @@ ARKANLOR_MULS = os.path.join(PROJECT_ROOT, 'muls')
 DEFAULT_MAP0 = os.path.join(ARKANLOR_MULS, 'map0.mul')
 DEFAULT_MAP0_SIZE = (768 * 8, 512 * 8) # 6144, 4096
 
-DRAGON_SCRIPT_DIR = os.path.abspath(os.path.join(PROJECT_ROOT, 'scripts/dragon/'))
+DRAGON_SCRIPT_DIR = os.path.abspath(os.path.join(PROJECT_ROOT, 'scripts/uodev/'))
 
 try:
     from settings_local import *

@@ -21,6 +21,7 @@ GNU General Public License for more details.
 import numpy
 from uolib1 import map as uomap
 from django.conf import settings
+from arkanlor.boulder.generators.const import BLACKMAP
 
 SHAPE_X = 8
 SHAPE_Y = 8
@@ -69,6 +70,7 @@ class MapBlock:
                  header=0):
         # parenting
         self.parent = parent
+        self.processed = False # postprocession flag.
         # positions
         if not offset_x % SHAPE_X:
             offset_x = offset_x - offset_x % SHAPE_X
@@ -81,7 +83,7 @@ class MapBlock:
         self.flags = numpy.zeros(BLOCK_SHAPE, dtype=int) # flag matrix
         self.tiles = numpy.zeros(BLOCK_SHAPE, dtype=int) # tile matrix.
         self.heights = numpy.zeros(BLOCK_SHAPE, dtype=int) # heightmap
-        self.groups = numpy.zeros(BLOCK_SHAPE, dtype=int) # groups
+        self.tiles_mod = numpy.zeros(BLOCK_SHAPE, dtype=int) # groups
         # noises:
         self.height_map = None
         self.tile_map = None
@@ -103,8 +105,10 @@ class MapBlock:
         else:
             return len(self.statics[x % 8][y % 8]) > 0
 
-    def add_static(self, x, y, static):
-        self.statics[x % 8][y % 8] += [static]
+    def add_static(self, x, y, art, z=0, color=0):
+        rx, ry = x % 8, y % 8
+        static = StaticItem(self, art, rx, ry, z, color)
+        self.statics[rx][ry] += [static]
 
     def _sync(self):
         """ Override this to write your custom sync method.
@@ -134,9 +138,59 @@ class MapBlock:
         pass
 
     def get_cells(self):
-        return [ {'tile': int(self.tiles[x, y]), 'z': int(self.heights[x, y])}
+        return [ {'tile': int(self.tiles[x, y]) if not int(self.tiles_mod[x, y]) else int(self.tiles_mod[x, y]),
+                  'z': int(self.heights[x, y])}
                  for y in xrange(SHAPE_Y) for x in xrange(SHAPE_X)
                  ]
+
+    def get_cell_tile(self, rx, ry):
+        """ return a cell tile in relative coordinates.
+            note: does not wake up surrounding blocks.
+        """
+        if rx >= 0 and rx < 8:
+            if ry >= 0 and ry < 8:
+                return self.tiles[rx, ry]
+            else:
+                if ry >= 8:
+                    # get our southern neighbour.
+                    neighbour = self.parent.get_block_or_none(self.bx,
+                                                              self.by + 1)
+                    nb = (rx, ry - 8)
+                else:
+                    # get our northern neighbour
+                    neighbour = self.parent.get_block_or_none(self.bx,
+                                                              self.by - 1)
+                    nb = (rx, ry + 8)
+        else:
+            if rx >= 8:
+                # get our eastern neighbour.
+                neighbour = self.parent.get_block_or_none(self.bx + 1,
+                                                              self.by)
+                nb = (rx - 8, ry)
+            else:
+                # get our western neighbour
+                neighbour = self.parent.get_block_or_none(self.bx - 1,
+                                                              self.by)
+                nb = (rx + 8, ry)
+        if neighbour:
+            return neighbour.get_cell_tile(*nb)
+        return BLACKMAP
+
+    def surrounding_tiles(self, rx, ry):
+        """
+        return order: nw, n, ne, e, se, s, sw, w (clockwise from nw)
+        # get the surrounding tiles to a cell for pattern operations
+        # returns 8 tiles in alist.
+        
+        """
+        ret = []
+        for x, y in [(-1, -1), (0, -1), (1, -1), # nw, n, ne
+                     (1, 0), # e
+                     (1, 1), (0, 1), (-1, 1), # se, s, sw
+                     (-1, 0), # w 
+                     ]:
+            ret += [ self.get_cell_tile(rx + x, ry + y) ]
+        return ret
 
     def get_statics_linear(self):
         ret = []
@@ -178,21 +232,59 @@ class Map(object):
         """ relative block coordinates """
         return (x % SHAPE_X, y % SHAPE_Y)
 
-    def get_neighbours(self, block):
+    def get_neighbours(self, block, wake_up=False):
+        """ 
+            returns EAST, NORTH, SOUTH, WEST blocks.
+            wake_up True uses get_block.
+        """
         # returns the neighbours (diamond)
+        if wake_up:
+            getter = self.get_block
+        else:
+            getter = self.get_block_or_none
         # ensw
         east, north, south, west = None, None, None, None
         bx, by = block.bx, block.by
         # east
         if bx < self.blocks_x - 1:
-            east = self.get_block_or_none(bx + 1, by)
+            east = getter(bx + 1, by)
         if by > 0:
-            north = self.get_block_or_none(bx, by - 1)
+            north = getter(bx, by - 1)
         if by < self.blocks_y - 1:
-            south = self.get_block_or_none(bx, by + 1)
+            south = getter(bx, by + 1)
         if bx > 0:
-            west = self.get_block_or_none(bx - 1, by)
+            west = getter(bx - 1, by)
         return (east, north, south, west)
+
+    def get_all_neighbours(self, block, wake_up=False):
+        """
+            returns NW, N, NE,
+                            E,
+                    <--------
+                    SE, S, SW
+                    W
+            wake_up True uses get_block
+        """
+        if wake_up:
+            getter = self.get_block
+        else:
+            getter = self.get_block_or_none
+        east, north, south, west = self.get_neighbours(block, wake_up)
+        # now determine ne, nw
+        bx, by = block.bx, block.by
+        nw, ne, sw, se = None, None, None, None
+        if north and west:
+            nw = getter(bx - 1, by - 1)
+        if north and east:
+            ne = getter(bx + 1, by - 1)
+        if south and east:
+            se = getter(bx + 1, by + 1)
+        if south and west:
+            sw = getter(bx - 1, by - 1)
+        return (nw, north, ne,
+                east,
+                se, south, sw,
+                west)
 
     def get_blocks16(self, x, y):
         b16x = (x - x % 16) / 16
@@ -206,29 +298,42 @@ class Map(object):
         mb4 = self.get_block(bx + 1, by + 1)
         return (mb1, mb2, mb3, mb4)
 
+    def block_postprocess(self, block):
+        """
+            we wake up our neighbours.
+        """
+        self.get_all_neighbours(block, wake_up=True)
+        block.processed = True
+
     def block(self, x, y):
         """
             access the block at x and y. 
         """
         bx, by = self._bi(x, y)
-        return self.get_block(bx, by)
+        block = self.get_block(bx, by)
+        self.block_postprocess(block)
+        return block
 
-    def get_block(self, bx, by):
+    def get_block(self, bx, by, create=True):
         """
             access the block at Bx By
         """
         try:
             return self.blocks[bx, by]
         except KeyError:
-            block = MapBlock(self, bx * SHAPE_X, by * SHAPE_Y)
-            self.blocks[bx, by] = block
-            return block
+            if create:
+                block = MapBlock(self, bx * SHAPE_X, by * SHAPE_Y)
+                self.blocks[bx, by] = block
+                return block
 
     def get_block_or_none(self, bx, by):
-        try:
-            return self.blocks[bx, by]
-        except KeyError:
-            return None
+        return self.get_block(bx, by, False)
+
+    def access_block(self, bx, by):
+        # like blocks, access_block activates post processing
+        block = self.get_block(bx, by)
+        self.block_postprocess(block)
+        return block
 
     def walkable(self, x, y):
         return self.block(x, y).matrix[self._rel(x, y)] == 0x0

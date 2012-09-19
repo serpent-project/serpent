@@ -5,7 +5,8 @@ from arkanlor.boulder.generators import biomes
 import numpy
 from arkanlor.boulder.generators.continents import ContinentManager, \
     ExampleContinent
-from arkanlor.boulder.generators.dragonmap import SimpleDragonContinent
+from arkanlor.boulder.generators.dragonmap import SimpleDragonContinent, \
+    dragon_scripts
 
 class BiomeMapSync(MapSync):
     def load_block(self, mapblock):
@@ -52,4 +53,13 @@ class BiomeMap(Map):
     def get_biome(self, block):
         return self.continents.get_biome(block)
 
-
+    def block_postprocess(self, block):
+        """
+            we wake up our neighbours.
+            we apply dragon filters automagically.
+            note: this should be a continental thing
+        """
+        if not block.processed:
+            self.get_all_neighbours(block, wake_up=True)
+            dragon_scripts.apply(block, levels=[0, 1, 2, 3, 4])
+            block.processed = True

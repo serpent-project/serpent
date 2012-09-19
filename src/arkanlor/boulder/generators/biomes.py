@@ -6,7 +6,7 @@
 """
 import numpy
 from arkanlor.misc.geology import Voronoi, MidpointDisplacementNoise
-from arkanlor.boulder.generators.const import UOTiles
+from arkanlor.boulder.generators.const import UOTiles, BLACKMAP
 
 def select_tile(tile_list, f):
     # selects a tile from tile_list.
@@ -47,7 +47,7 @@ class Biome(object):
 
 class Blackness(Biome):
     def apply_cell(self, mapblock, rx, ry, hf, tf):
-        mapblock.tiles[rx, ry] = 0x244 # noname blackness.
+        mapblock.tiles[rx, ry] = BLACKMAP # noname blackness.
         mapblock.heights[rx, ry] = 0
 
 class DeepSea(Biome):

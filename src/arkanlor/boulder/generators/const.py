@@ -11,3 +11,4 @@ class UOTiles:
     grass_murky = [x for x in range(0x9c4, 0x9eb)]
     snow = [x for x in range(0x11a, 0x11d)]
 
+BLACKMAP = 0x244

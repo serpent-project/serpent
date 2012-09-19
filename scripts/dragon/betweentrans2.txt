@@ -1,4 +1,0 @@
-// Ryandor's Mod 10
-// betweentrans2.txt
-//
-02 Water2x.txt

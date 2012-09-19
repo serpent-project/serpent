@@ -148,7 +148,7 @@ class BoulderState(object):
 
     def items_outer_rect(self, x, y, dx=18, dy=18, minimal=8):
         items = models.Item.objects.filter(
-                                    worldmap_db=self.worldmap_db,
+                                    worldmap=self.worldmap_db,
                                     x__gte=x - dx,
                                     x__lt=x + dx,
                                     y__gte=y - dy,

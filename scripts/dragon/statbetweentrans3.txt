@@ -1,4 +1,0 @@
-// Ryandor's Mod 10
-// statbetweentrans3.txt
-//
-02 x2Water.txt
