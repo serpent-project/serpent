@@ -36,7 +36,7 @@ class UpdateTerrain(Packet):
                  ]
 
 class _Static(Packet):
-    _datagram = [('art', USHORT),
+    _datagram = [('graphic', USHORT),
                  ('rx', BYTE),
                  ('ry', BYTE),
                  ('z', SBYTE),

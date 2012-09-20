@@ -10,5 +10,6 @@ class UOTiles:
     dirt_stones = [0x71 + x for x in xrange(4)]
     grass_murky = [x for x in range(0x9c4, 0x9eb)]
     snow = [x for x in range(0x11a, 0x11d)]
+    forest = [x for x in range(0xc4, 0xc8)]
 
 BLACKMAP = 0x244

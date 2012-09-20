@@ -1,0 +1,61 @@
+Brainstorm
+----------
+
+
+Caleb Map Config files
+######################
+provide good edge information, only one tile per edge.
+
+Artifact based generation
+#########################
+
+MapBlocks have to get artifact support. An artifact map places local maxima
+in itself, and connects to other mapblocks. It can represent ongoing paths,
+setting of different terrain types, etc.
+
+
+Generation
+##########
+abstract:
+Boulder -> Map -> Sync -> MapBlock
+
+landscape:
+Boulder -> BiomeMap -> BiomeSync -> ContinentManager -> Continent -> Biome -> MapBlock
+
+8x8x8:
+Boulder -> BiomeMap -> BiomeSync -> ContinentManager -> ExampleContinent -> (Biomes) -> MapBlock
+
+uomap:
+Boulder -> UOMap -> UOSync -> MapBlock
+
+uocontinent:
+Boulder -> BiomeMap -> BiomeSync -> ContinentManager -> UOContinent -> UOBiome -> MapBlock
+
+simpledragon:
+Boulder -> BiomeMap -> BiomeSync -> ContinentManager -> SimpleDragonContinent -> SimpleDragonBiome -> MapBlock
+
+region handling: ?
+RegionContinent(ContinentManager, Continent)
+Region
+
+Artifact Concept
+################
+
+Artifacts are created in an artifact map. they however also possess the ability
+to save their exit points on borders, and continue their work on neighbouring
+mapblocks.
+
+Ideas behind this are "drunken movement" paths, mountains that erect themselves
+spots of snow or dirt, watersprings leading to rivers, roads or paths
+or any other natural phenomenon.
+
+Artifacts however have preferences, means of start and end, and run as a separate
+postprocessing step, instead of designing the basic layout of the terrain.
+
+Item Definition Scripts
+#######################
+
+while reusing dragon is nice, more elaborate scripts could help define and update
+datalists more casually.
+
+Means of transfering 

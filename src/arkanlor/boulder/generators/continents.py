@@ -24,13 +24,11 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
+import numpy
 from arkanlor.boulder.generators import biomes
 from arkanlor.misc.geology import MidpointDisplacementNoise, Voronoi
-from arkanlor.boulder.generators.biomes import select_tile, DeepSea, \
-    ShallowSea, Coastal, GrassLand, MurkyGrassLand, Rocks, Mountains, \
-    HighLands
 from arkanlor.boulder.map import uomap
-import numpy
+from arkanlor.boulder.generators.utils import select_tile_linear, select_tile
 
 class ContinentManager:
     def __init__(self, DefaultContinent=None):
@@ -109,73 +107,6 @@ class TiledContinents(Continent):
     """ this continent tiles 8x8 continents        
     """
     pass
-
-class ExampleContinent(Continent):
-    """
-        defining a global midpoint noisemap for 8x8 continent blocks,
-        this continent returns voronoi based subcontinent types.
-        you can use this continent up to 8x8x8 width / height (4096x4096)
-    """
-    def initialize(self, **kwargs):
-        # we use this noise to populate our layout types.
-        self.noise = MidpointDisplacementNoise((int(numpy.ceil(self.width / 8)),
-                                                int(numpy.ceil(self.height / 8)))
-                                               ).normalize().z
-
-    def layout_type(self, brx, bry):
-        # this generates our layout types.
-        cx, cy = int(brx / 8), int(bry / 8)
-        return select_tile([
-        # waterland
-        [   (0.0, 0.9, DeepSea()),
-            (0.9, 0.95, ShallowSea()),
-            (0.95, 1.1, Coastal()),
-        ],
-        # green lands
-        [   (0.0, 0.02, DeepSea()),
-            (0.02, 0.05, ShallowSea()),
-            (0.05, 0.15, Coastal()),
-            (0.15, 1.1, GrassLand()),
-        ],
-        # murky green lands
-        [
-            (0.00, 0.02, ShallowSea()),
-            (0.02, 0.04, Coastal()),
-            (0.04, 0.7, MurkyGrassLand()),
-            (0.7, 1.1, GrassLand()),
-        ],
-        # rocky lands
-        [   (0.0, 0.4, GrassLand()),
-            (0.4, 1.1, Rocks()),
-        ],
-        # rocky lands
-        [   (0.0, 0.4, GrassLand(10)),
-            (0.4, 0.9, Rocks(10)),
-            (0.9, 0.95, Mountains(10)),
-            (0.95, 1.1, Mountains(20)),
-        ],
-        # highlands
-        [   (0.0, 0.3, Rocks(10)),
-            (0.3, 0.4, HighLands(10)),
-            (0.4, 0.6, Mountains(35)),
-            (0.6, 0.9, Mountains(40)),
-            (0.9, 1.1, Mountains(50)),
-        ], ],
-        self.noise[cx, cy])
-
-    def build_biome_map(self, brx, bry):
-        noise = Voronoi((8, 8)).normalize()
-        start_x, start_y = (brx - (brx % 8)), (bry - (bry % 8))
-        for x in xrange(8):
-            for y in xrange(8):
-                self.biomes[start_x + x,
-                            start_y + y] = biomes.get_biome_by_range(noise.z[x, y], self.layout_type(brx, bry))
-        return self.biomes[brx, bry]
-
-    def resolve_biome(self, brx, bry):
-        """ builds another 8x8 voronoi block.
-        """
-        return self.build_biome_map(brx, bry)
 
 class UOBiome(biomes.Biome):
     ___slots__ = ['mapmul', 'bx', 'by']

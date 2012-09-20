@@ -458,15 +458,15 @@ class AdminCommand(Packet):
 # from 0x4: standard packets.
 
 class _Static(Packet):
-    _datagram = [('tile', WORD),
+    _datagram = [('graphic', WORD),
                  ('rx', BYTE),
                  ('ry', BYTE),
                  ('z', SBYTE),
-                 ('hue', SHORT),
+                 ('color', SHORT),
                  ]
 
 class _MapCell(Packet):
-    _datagram = [('tile', WORD),
+    _datagram = [('graphic', WORD),
                  ('z', SBYTE)]
 
 class _MapBlock(Packet):
@@ -504,7 +504,7 @@ class DrawMap(Packet):
     _datagram = [('x', WORD),
                  ('y', WORD),
                  ('z', SBYTE),
-                 ('tile', WORD)]
+                 ('graphic', WORD)]
 
 class InsertStatic(Packet):
     __slots__ = Packet.__slots__
@@ -513,7 +513,7 @@ class InsertStatic(Packet):
     _datagram = [('x', WORD),
                  ('y', WORD),
                  ('z', SBYTE),
-                 ('tile', WORD),
+                 ('graphic', WORD),
                  ('color', WORD),
                  ]
 
@@ -524,7 +524,7 @@ class DeleteStatic(Packet):
     _datagram = [('x', WORD),
                  ('y', WORD),
                  ('z', SBYTE),
-                 ('tile', WORD),
+                 ('graphic', WORD),
                  ('color', WORD)]
 
 class ElevateStatic(Packet):
@@ -534,7 +534,7 @@ class ElevateStatic(Packet):
     _datagram = [('x', WORD),
                  ('y', WORD),
                  ('z', SBYTE),
-                 ('tile', WORD),
+                 ('graphic', WORD),
                  ('color', WORD),
                  ('znew', SBYTE)]
 
@@ -545,7 +545,7 @@ class MoveStatic(Packet):
     _datagram = [('x', WORD),
                  ('y', WORD),
                  ('z', SBYTE),
-                 ('tile', WORD),
+                 ('graphic', WORD),
                  ('color', WORD),
                  ('xnew', WORD),
                  ('ynew', WORD), ]
@@ -557,7 +557,7 @@ class HueStatic(Packet):
     _datagram = [('x', WORD),
                  ('y', WORD),
                  ('z', SBYTE),
-                 ('tile', WORD),
+                 ('graphic', WORD),
                  ('color', WORD),
                  ('hue', WORD), # or name it colornew? 
                  ]

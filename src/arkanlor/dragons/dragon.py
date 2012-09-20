@@ -19,7 +19,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 """
 import os.path, os
-from arkanlor.boulder.generators.biomes import select_tile
+from arkanlor.boulder.generators.utils import select_tile
 
 COMMENT = -1
 STRING = -2 # unknown string.
@@ -28,7 +28,11 @@ EMPTY = 0
 
 LAYER_MAP = 0
 LAYER_STATIC = 1
+LAYER_ITEM = 2
+MAP_RUNLEVELS = [0, 1]
 STATIC_RUNLEVELS = [2, 3, 4]
+ITEM_RUNLEVELS = [5, ] # appropriate,items are lists of 5.
+ALL_RUNLEVELS = MAP_RUNLEVELS + STATIC_RUNLEVELS + ITEM_RUNLEVELS
 
 def unhex(s):
     return int(s, 16)
@@ -177,12 +181,12 @@ class Filter8:
         return ret
     def execute(self, mapblock, rx, ry, layer=0):
         # execute the directives of this filter on cell rx ry.
-        if layer == 0:
+        if layer == LAYER_MAP:
             # map layer
             mapblock.tiles_mod[rx, ry] = select_tile(self.directive, mapblock.tile_map[rx, ry])
             # if random_range: add random_range.
             # mapblock.heights[rx, ry] += numpy.randint(*self.random_range)
-        elif layer == 1:
+        elif layer == LAYER_STATIC:
             art = select_tile(self.directive, mapblock.tile_map[rx, ry])
             mapblock.add_static(rx, ry, art, z=mapblock.heights[rx, ry])
 
@@ -208,8 +212,6 @@ class FilterSet:
         # build our pattern.
         p = 0x0
         o = 0x0
-        tolerate_max = 0
-        toleration = 0
         for x in xrange(8):
             p = p << 1
             o = o << 1
@@ -239,6 +241,7 @@ class DragonGroups:
     def __init__(self):
         self.groups = {}
         self.runs = {} # saves filtersets, connecting two groups.
+        self.items = {} # saves item placements per group.
         self._reverse = {} # allows to reverse scan tiles for groups.
 
     def build_reverse(self):
@@ -312,23 +315,42 @@ class DragonGroups:
             self.runs[run][source][other] = []
         self.runs[run][source][other] += [filterset]
 
+    def place_items(self, group, mapblock, rx, ry):
+        max_chance = 0x1000
+        if group in self.items.keys():
+            # 
+            chance = self.items[group]['chance']
+            item_combis = self.items[group]['items']
+            if (mapblock.height_map[rx, ry] * max_chance) < chance:
+                items = select_tile(item_combis, mapblock.tile_map[rx, ry])
+                for item in items:
+                    artid, z, color, rrx, rry = item
+                    mapblock.add_static_overflow(rx + rrx, ry + rry,
+                                                 artid, z, color)
+
     def scan_mapblock(self, mapblock, runlevel=0):
         """
             Scan a mapblock and apply filters to it.
         """
         run = self.runs.get(runlevel, None)
-        if not run:
-            return # empty run, or unknown run.
         if runlevel in STATIC_RUNLEVELS:
             layer = LAYER_STATIC
-        else:
+        elif runlevel in MAP_RUNLEVELS:
             layer = LAYER_MAP
+        elif runlevel in ITEM_RUNLEVELS:
+            layer = LAYER_ITEM
+        else:
+            layer = runlevel
         self.update_reverse() # does nothing if not needed.
         jobs = []
         for rx in xrange(8):
             for ry in xrange(8):
                 g = self._reverse.get(mapblock.tiles[rx, ry], None)
-                if g:
+                if g is not None:
+                    if not run:
+                        if layer == LAYER_ITEM:
+                            self.place_items(g, mapblock, rx, ry)
+                        continue
                     others = run.get(g, None)
                     if others:
                         # i know this group has filters to several others.
@@ -364,6 +386,8 @@ class DragonGroups:
         self.update_reverse()
         for rev, v in self._reverse.items():
             print "Item %s in Group %s" % (hex(rev), hex(v))
+        for group, itemlist in self.items.items():
+            print group, itemlist
 
     def __unicode__(self):
         return "<Dragon Groups %s>" % (len(self.groups),)
@@ -445,6 +469,15 @@ class DragonScripts:
         self.read_connections(self.files['statbetweentrans'], groups, 2)
         self.read_connections(self.files['statbetweentrans2'], groups, 3)
         self.read_connections(self.files['statbetweentrans3'], groups, 4)
+
+        item_cache = self.read_items(self.files['items'], groups)
+        def read_item_files(group, f):
+            self.read_itemfile(DragonScriptFile('items/%s' % (f.lower().replace('.txt', '')),
+                                                my_f('items/%s' % f)).read(),
+                                groups,
+                                group)
+        for group, item_entry in item_cache.items():
+            read_item_files(group, item_entry['file'])
         return groups
 
     def read_groups(self, dfile, groups):
@@ -509,11 +542,43 @@ class DragonScripts:
             if filterset:
                 groups.connect_groups_by_filterset(group, other, filterset)
 
+    def read_items(self, dfile, groups):
+        for data in dfile.scriptdata:
+            t, data = data[0], data[1:]
+            if t == 7:
+                # we do not respect boundaries.
+                # [SourceGroup] [ChanceToPlace] [Left] [Top] [Right] [Bottom] [Filename]
+                group, chance, filename = data[0], data[1], data[-1]
+                groups.items[group] = {'chance': chance,
+                                       'items': [],
+                                       'file': filename,
+                                       }
+        return groups.items
+
+    def read_itemfile(self, dfile, groups, group):
+        """
+            reads an itemfile.
+            Syntax :
+            [Frqequency] [ItemGroup1] [ItemGroup2] [ItemGroup3] ... 
+            Itemgroup = [Item(hex)] [ZLevel(dec)] [Color(hex)] [Xmovement(dec)] [Ymovement(dec)]
+        """
+        for data in dfile.scriptdata:
+            t, data = data[0], data[1:]
+            if (t - 1) % 5 == 0:
+                frequency, data = data[0], data[1:]
+                tiles = []
+                while len(data):
+                    artid, z, color, rrx, rry, data = data[0], data[1], data[2], data[3], data[4], data[5:]
+                    tiles += [[artid, z, color, rrx, rry]]
+                for x in xrange(frequency):
+                    groups.items[group]['items'] += [tiles]
+
+
 if __name__ == '__main__':
 
     # defining root for our python modules
     THIS_DIR = os.path.abspath(os.path.dirname(os.path.join(os.getcwd(), __file__)))
-    DRAGON_SCRIPT_DIR = os.path.abspath(os.path.join(THIS_DIR, '../../scripts/dragon/'))
+    DRAGON_SCRIPT_DIR = os.path.abspath(os.path.join(THIS_DIR, '../../scripts/uodev/'))
     dragon = DragonScripts(DRAGON_SCRIPT_DIR)
     print dragon.groups.printout()
     #for key in dragon.files.keys():

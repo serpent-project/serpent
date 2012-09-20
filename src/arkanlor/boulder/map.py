@@ -59,7 +59,7 @@ class StaticItem(object):
                 'ry': self.ry,
                 'z': self.z,
                 'color': self.color,
-                'art': self.art
+                'graphic': self.art,
                 }
 
 class MapBlock:
@@ -71,6 +71,7 @@ class MapBlock:
         # parenting
         self.parent = parent
         self.processed = False # postprocession flag.
+        self.protected = False
         # positions
         if not offset_x % SHAPE_X:
             offset_x = offset_x - offset_x % SHAPE_X
@@ -105,10 +106,46 @@ class MapBlock:
         else:
             return len(self.statics[x % 8][y % 8]) > 0
 
-    def add_static(self, x, y, art, z=0, color=0):
+    def add_static(self, x, y, art, z=0, color=0, check_height=True):
         rx, ry = x % 8, y % 8
-        static = StaticItem(self, art, rx, ry, z, color)
-        self.statics[rx][ry] += [static]
+        if check_height:
+            if z < self.heights[rx, ry]:
+                z = self.heights[rx, ry]
+        st = StaticItem(self, art, rx, ry, z, color)
+        self.statics[rx][ry] += [st]
+
+    def add_static_overflow(self, rx, ry, art, z=0, color=0, wake_up=False):
+        """ adds a static by adding it to neighbouring mapblocks
+            if it overlaps
+        """
+        if wake_up:
+            getter = self.parent.get_block
+        else:
+            getter = self.parent.get_block_or_none
+        if rx >= 0 and rx < 8:
+            if ry >= 0 and ry < 8:
+                return self.add_static(rx, ry, art, z, color)
+            else:
+                if ry >= 8:
+                    # get our southern neighbour.
+                    neighbour = getter(self.bx, self.by + 1)
+                    nb = (rx, ry - 8)
+                else:
+                    # get our northern neighbour
+                    neighbour = getter(self.bx, self.by - 1)
+                    nb = (rx, ry + 8)
+        else:
+            if rx >= 8:
+                # get our eastern neighbour.
+                neighbour = getter(self.bx + 1, self.by)
+                nb = (rx - 8, ry)
+            else:
+                # get our western neighbour
+                neighbour = getter(self.bx - 1, self.by)
+                nb = (rx + 8, ry)
+        if neighbour:
+            return neighbour.add_static_overflow(nb[0], nb[1],
+                                                 art, z, color)
 
     def _sync(self):
         """ Override this to write your custom sync method.
@@ -138,7 +175,7 @@ class MapBlock:
         pass
 
     def get_cells(self):
-        return [ {'tile': int(self.tiles[x, y]) if not int(self.tiles_mod[x, y]) else int(self.tiles_mod[x, y]),
+        return [ {'graphic': int(self.tiles[x, y]) if not int(self.tiles_mod[x, y]) else int(self.tiles_mod[x, y]),
                   'z': int(self.heights[x, y])}
                  for y in xrange(SHAPE_Y) for x in xrange(SHAPE_X)
                  ]
