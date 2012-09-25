@@ -5,14 +5,8 @@
     
     later on, it will transparently parse into arkanlor definitions
 """
-from quanum import re_bracket, re_bracket_square
+from quanum import re_bracket, re_bracket_square, bracketed
 
-def bracketed(s, b=re_bracket):
-    b = b.search(s)
-    if not b:
-        return ''
-    else:
-        return b.group()[1:-1]
 
 def read_file_caleb(filename):
     fh = open(filename, 'r')
@@ -35,6 +29,9 @@ def read_file_caleb(filename):
     return groups
 
 def transform_tiles_bnd(filename):
+    """ reads caleb config for transitions. defines groups for transitions
+        run this first to ensure the groups being valid.
+    """
     TILES_BND_ORDER = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw', 'ine', 'ise', 'isw', 'inw']
     unknown = 1
     groups = read_file_caleb(filename)
@@ -63,16 +60,36 @@ def transform_tiles_bnd(filename):
                 transitions[transname] = {}
             transitions[transname][TILES_BND_ORDER[i]] = tiles[i]
             output += [ '%s %s' % (TILES_BND_ORDER[i], tiles[i]) ]
-    return output, tilegroups, transitions
+    return tilegroups, transitions
+
+def transform_tiles(filename):
+    groups = read_file_caleb(filename)
+    tilegroups, maps = {}, []
+    for name, lines in groups.items():
+        name = name.replace('-', '_').replace('+', '_').lower().strip()
+        for line in lines:
+            maps += [line]
+        tilegroups[name] = maps
+        maps = []
+    return tilegroups
 
 if __name__ == '__main__':
     import os
-    lines, tg, t = transform_tiles_bnd(os.path.abspath(os.path.join('../../..', 'scripts/caleb/tiles_bnd.cfg')))
-    print "##### Transformation Output ######"
+    tgt, t = transform_tiles_bnd(os.path.abspath(os.path.join('../../..', 'scripts/caleb/tiles_bnd.cfg')))
+    tg = transform_tiles(os.path.abspath(os.path.join('../../..', 'scripts/caleb/tiles.cfg')))
+    print "##### groups.txt ######"
+    print "# Groups from transitions"
+    for key in tgt:
+        print '[%s]' % key
+        print 'map %s' % tgt[key]
+        print ''
+    print "# Groups"
     for key in tg:
         print '[%s]' % key
-        print 'map %s' % tg[key]
+        print 'map %s' % ' '.join(tg[key])
         print ''
+    print '##### transitions.txt ######'
+    print ''
     for key, values in t.items():
         print '[%s]' % key
         # nicer output, more sane to the 01234567 eye

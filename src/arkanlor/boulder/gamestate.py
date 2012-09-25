@@ -23,7 +23,7 @@ import numpy
 from arkanlor.boulder.map import UOMap, Map
 from arkanlor.boulder.generators.landscape import BiomeMap
 from django.conf import settings
-from arkanlor.boulder.generators.continents import UOContinent
+from arkanlor.boulder.generators.continents import UOContinent, QuadContinent
 from arkanlor.boulder.generators.dragonmap import SimpleDragonContinent
 from arkanlor.boulder.generators.old.example import ExampleContinent
 from arkanlor.boulder.generators.grassland import EndlessGrass
@@ -62,9 +62,10 @@ class BoulderState(object):
         self.worldmap = BiomeMap(self, size=settings.DEFAULT_MAP0_SIZE)
         # if one of these fails, simply comment them out.
         # these will be removed later, if boulder evolves.
-        self.worldmap.continents.register_continent(ExampleContinent((16, 16), 10, 1))
-        self.worldmap.continents.register_continent(EndlessGrass((25, 25), 15, 10))
-        self.worldmap.continents.register_continent(SimpleDragonContinent((8, 8), 1, 1))
+        self.worldmap.continents.register_continent(QuadContinent((64, 64), 1, 1))
+        #self.worldmap.continents.register_continent(ExampleContinent((16, 16), 10, 1))
+        #self.worldmap.continents.register_continent(EndlessGrass((25, 25), 15, 10))
+        #self.worldmap.continents.register_continent(SimpleDragonContinent((8, 8), 1, 1))
         self.worldmap.continents.register_continent(
                                         UOContinent(
                                             (128, 128),
@@ -72,8 +73,8 @@ class BoulderState(object):
                                             mapmul=settings.DEFAULT_MAP0,
                                             map_offset_bx=15,
                                             map_offset_by=480,
-                                                    )
-                                                    )
+                                                    ))
+
 
     def get_map(self):
         return self.worldmap

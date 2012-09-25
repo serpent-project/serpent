@@ -29,6 +29,7 @@ from arkanlor.boulder.generators import biomes
 from arkanlor.misc.geology import MidpointDisplacementNoise, Voronoi
 from arkanlor.boulder.map import uomap
 from arkanlor.boulder.generators.utils import select_tile_linear, select_tile
+from arkanlor.dragons.default import quanum
 
 class ContinentManager:
     def __init__(self, DefaultContinent=None):
@@ -133,3 +134,83 @@ class UOContinent(Continent):
         bry += self.uo_map_offset_y
         return UOBiome(self.noise, brx, bry)
 
+
+class QuadBiome(biomes.Biome):
+    ___slots__ = ['continent', 'bx', 'by']
+    def __init__(self, continent=None, bx=0, by=0):
+        self.continent = continent
+        self.bx = bx
+        self.by = by
+    def apply(self, mapblock, height_map=None, tile_map=None):
+        if height_map is None:
+            height_map = mapblock.height_map
+        if tile_map is None:
+            tile_map = mapblock.tile_map
+        for x in xrange(8):
+            for y in xrange(8):
+                c, group = self.continent.quad_cell(self.bx, self.by, x, y)
+                mapblock.tiles[x, y] = select_tile(group.tiles, tile_map[x, y])
+                if group.options.get('flat', False):
+                    mapblock.heights[x, y] = 0
+                else:
+                    mapblock.heights[x, y] = min(126, c + (int(height_map[x, y] * 8.8)))
+
+
+QUAD_ALT_TILES = ((-1, 'water'),
+                  (1, 'grass'),
+                  (8.5, 'dirt'),
+                  (11, 'mountain'))
+QUAD_HUMIDITY_MODS = {'grass': ((0.0, 'sand'),
+                                (0.1, 'sand+dunes'),
+                                (0.3, 'grass'),
+                                (0.65, 'forest'),
+                                (0.8, 'jungle'),
+                                (0.96, 'swamp')),
+                      }
+
+class QuadContinent(Continent):
+    """
+        needs Quanum operator to set tiles.
+    """
+    def initialize(self, **kwargs):
+        quad_shape = (self.shape[0] * 4, self.shape[1] * 4)
+        self.altitudes = MidpointDisplacementNoise(quad_shape).normalize().z
+        self.humidity = MidpointDisplacementNoise(quad_shape).z
+
+        # other options may include terrain type
+
+    def resolve_celltile_group(self, humidity, altitude):
+        name = 'water'
+        x = 0
+        altitude = int(altitude * 30) - 10
+        for qx, qname in QUAD_ALT_TILES:
+            if altitude > qx:
+                x = qx
+                name = qname
+        if name in QUAD_HUMIDITY_MODS.keys():
+            mods = QUAD_HUMIDITY_MODS[name]
+            for qx, qname in mods:
+                if humidity > qx:
+                    x = qx
+                    name = qname
+        return quanum.groups[name]
+
+    def quad_cell(self, bx, by, rx, ry):
+        c0x, c0y = bx * 4, by * 4
+        cx, cy = numpy.floor(rx / 2), numpy.floor(ry / 2)
+        humidity = self.humidity[c0x + cx, c0y + cy]
+        altitude = self.altitudes[c0x + cx, c0y + cy]
+        # get the basic tile
+        # @todo: mod: make a random number, and this cell connects to others.
+        # register that on an extra map.
+        # only valid if not already registered / registered neighbours.
+        # the number should be between 1, 1, 1, 2, 2, 3
+
+        # alt mod
+        alt = max(0, int(altitude * 10) - 1)
+        alt = alt * (alt / 2)
+        return alt, self.resolve_celltile_group(humidity, altitude)
+
+
+    def resolve_biome(self, brx, bry):
+        return QuadBiome(self, brx, bry)

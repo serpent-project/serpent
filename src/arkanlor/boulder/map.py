@@ -120,6 +120,8 @@ class MapBlock:
         """
         if wake_up:
             getter = self.parent.get_block
+            if wake_up is not True:
+                wake_up -= 1
         else:
             getter = self.parent.get_block_or_none
         if rx >= 0 and rx < 8:
@@ -145,7 +147,7 @@ class MapBlock:
                 nb = (rx + 8, ry)
         if neighbour:
             return neighbour.add_static_overflow(nb[0], nb[1],
-                                                 art, z, color)
+                                                 art, z, color, wake_up)
 
     def _sync(self):
         """ Override this to write your custom sync method.
@@ -176,41 +178,42 @@ class MapBlock:
 
     def get_cells(self):
         return [ {'graphic': int(self.tiles[x, y]) if not int(self.tiles_mod[x, y]) else int(self.tiles_mod[x, y]),
-                  'z': int(self.heights[x, y])}
+                  'z': max(min(126, int(self.heights[x, y])), -126)}
                  for y in xrange(SHAPE_Y) for x in xrange(SHAPE_X)
                  ]
 
-    def get_cell_tile(self, rx, ry):
+    def get_cell_tile(self, rx, ry, wake_up=0):
         """ return a cell tile in relative coordinates.
-            note: does not wake up surrounding blocks.
         """
+        if wake_up:
+            getter = self.parent.get_block
+            if wake_up is not True:
+                wake_up -= 1
+        else:
+            getter = self.parent.get_block_or_none
         if rx >= 0 and rx < 8:
             if ry >= 0 and ry < 8:
                 return self.tiles[rx, ry]
             else:
                 if ry >= 8:
                     # get our southern neighbour.
-                    neighbour = self.parent.get_block_or_none(self.bx,
-                                                              self.by + 1)
+                    neighbour = getter(self.bx, self.by + 1)
                     nb = (rx, ry - 8)
                 else:
                     # get our northern neighbour
-                    neighbour = self.parent.get_block_or_none(self.bx,
-                                                              self.by - 1)
+                    neighbour = getter(self.bx, self.by - 1)
                     nb = (rx, ry + 8)
         else:
             if rx >= 8:
                 # get our eastern neighbour.
-                neighbour = self.parent.get_block_or_none(self.bx + 1,
-                                                              self.by)
+                neighbour = getter(self.bx + 1, self.by)
                 nb = (rx - 8, ry)
             else:
                 # get our western neighbour
-                neighbour = self.parent.get_block_or_none(self.bx - 1,
-                                                              self.by)
+                neighbour = getter(self.bx - 1, self.by)
                 nb = (rx + 8, ry)
         if neighbour:
-            return neighbour.get_cell_tile(*nb)
+            return neighbour.get_cell_tile(nb[0], nb[1], wake_up)
         return BLACKMAP
 
     def surrounding_tiles(self, rx, ry):
@@ -226,7 +229,7 @@ class MapBlock:
                      (1, 1), (0, 1), (-1, 1), # se, s, sw
                      (-1, 0), # w 
                      ]:
-            ret += [ self.get_cell_tile(rx + x, ry + y) ]
+            ret += [ self.get_cell_tile(rx + x, ry + y, 2) ]
         return ret
 
     def get_statics_linear(self):

@@ -31,6 +31,7 @@ from arkanlor.uos.protocol import UOS
 from arkanlor.uos.server import ServedClient
 from arkanlor import settings
 from arkanlor.ced.factory import CEDFactory
+from arkanlor.dragons.default import quanum # import it to generate it
 
 class ArkFactory(Factory):
     num_connections = None

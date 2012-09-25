@@ -1,42 +1,16 @@
 # definition of transitions.
 # (actually, this syntax is valid in all files)
 # 
-# [group1:group2] # defines a transition
+# [group1:group2] # defisws a transition
 # direction tile1 tile2 ...
-# direction is one of (n,e,s,w,ne,nw,se,sw,inw,ine,ise,isw)
-# You can also write a line of a,b and _, so actually these are shortcuts:
-#ne =  _bbb_aaa
-#nw =  bb_aaa_b
-#se =  aa_bbb_a
-#sw =  _aaa_bbb
-#n =   bbba_a_a
-#e =   _abbba_a
-#s =   _a_abbba
-#w =   ba_a_abb
-#inw = baaaaaaa
-#ine = aabaaaaa
-#ise = aaaabaaa
-#isw = aaaaaaba
+# direction is one of (n,e,s,w,ne,nw,se,sw,ise,isw,inw,ine)
+# (You can also write a lisw of a,b and _, so actually these are shortcuts)
 # all numbers are in hex. 
 # numbers in brackets () represent statics
 
 ##############################################################################
 
-[browncoast:unknown1]
-nw 066
-n 066
-ne 066
-e 066
-se 066
-s 066
-sw 066
-w 066
-inw 066
-ine 066
-ise 066
-isw 066
-
-[grass:swamp]
+[grass<swamp]
 nw 3de6
 n 03de1
 ne 03de4
@@ -45,54 +19,12 @@ se 3de5
 s 3ddf
 sw 3de3
 w 3ddb
-inw 3dd6
-ine 3dd5
-ise 3dd8
-isw 3dd7
+ise 3dd6
+isw 3dd5
+inw 3dd8
+ine 3dd7
 
-[mountain:grass]
-nw 0231
-n 0239
-ne 0232
-e 023a
-se 0233
-s 023b
-sw 0234
-w 023c
-inw 0235
-ine 0236
-ise 0237
-isw 0238
-
-[swamp:grass]
-nw 3dd6
-n 3ddf
-ne 3dd5
-e 3ddb
-se 3dd8
-s 03de1
-sw 3dd7
-w 3dde
-inw 3de6
-ine 03de4
-ise 3de5
-isw 3de3
-
-[forest:grass]
-nw 0d9
-n 0d1
-ne 0d2
-e 0cc
-se 0d8
-s 0c8
-sw 0da
-w 0ce
-inw 0d4
-ine 0d7
-ise 0d5
-isw 0d6
-
-[grass:dirt]
+[grass<dirt]
 nw 079
 n 085
 ne 07b
@@ -101,110 +33,12 @@ se 07a
 s 08b
 sw 07c
 w 087
-inw 07d
-ine 082
-ise 07e
-isw 083
+ise 07d
+isw 082
+inw 07e
+ine 083
 
-[mountain:dirt]
-nw 0e1
-n 0dd
-ne 0e2
-e 0de
-se 0e3
-s 0df
-sw 0e0
-w 0dc
-inw 0e4
-ine 0e5
-ise 0e6
-isw 0e7
-
-[sand:grass]
-nw 03d
-n 03a
-ne 03c
-e 037
-se 03e
-s 039
-sw 03b
-w 038
-inw 033
-ine 034
-ise 035
-isw 036
-
-[forest:mountain]
-nw 0f4
-n 0ec
-ne 0f5
-e 0ed
-se 0f6
-s 0ee
-sw 0f7
-w 0ef
-inw 0f0
-ine 0f3
-ise 0f2
-isw 0f1
-
-[grass:mountain]
-nw 0235
-n 023b
-ne 0236
-e 023c
-se 0237
-s 0239
-sw 0238
-w 023a
-inw 0231
-ine 0232
-ise 0233
-isw 0234
-
-[newgrass:dirt]
-nw 0c71
-n 0c6c
-ne 0c73
-e 0c6e
-se 0c70
-s 0c6f
-sw 0c72
-w 0c6d
-inw 0c75
-ine 0c77
-ise 0c74
-isw 0c76
-
-[dirt:grass]
-nw 07d
-n 08b
-ne 082
-e 087
-se 07e
-s 085
-sw 083
-w 089
-inw 079
-ine 07b
-ise 07a
-isw 07c
-
-[dirt:sand]
-nw 033a
-n 0335
-ne 033c
-e 0337
-se 0339
-s 0338
-sw 033b
-w 0336
-inw 033e
-ine 0340
-ise 033d
-isw 033f
-
-[grass:forest]
+[grass<forest]
 nw 0d4
 n 0c8
 ne 0d7
@@ -213,10 +47,10 @@ se 0d5
 s 0d1
 sw 0d6
 w 0cc
-inw 0d9
-ine 0d2
-ise 0d8
-isw 0da
+ise 0d9
+isw 0d2
+inw 0d8
+ine 0da
 
 [grass:sand]
 nw 033
@@ -227,10 +61,174 @@ se 035
 s 03a
 sw 036
 w 037
-inw 03d
-ine 03c
-ise 03e
-isw 03b
+ise 03d
+isw 03c
+inw 03e
+ine 03b
+
+[grass<mountain]
+nw 0235
+n 023b
+ne 0236
+e 023c
+se 0237
+s 0239
+sw 0238
+w 023a
+ise 0231
+isw 0232
+inw 0233
+ine 0234
+
+[dirt<sand]
+nw 033a
+n 0335
+ne 033c
+e 0337
+se 0339
+s 0338
+sw 033b
+w 0336
+ise 033e
+isw 0340
+inw 033d
+ine 033f
+
+[dirt<mountain]
+nw 0e4
+n 0df
+ne 0e5
+e 0dc
+se 0e6
+s 0dd
+sw 0e7
+w 0de
+ise 0e1
+isw 0e2
+inw 0e3
+ine 0e0
+
+[forest<mountain]
+nw 0f4
+n 0ec
+ne 0f5
+e 0ed
+se 0f6
+s 0ee
+sw 0f7
+w 0ef
+ise 0f0
+isw 0f3
+inw 0f2
+ine 0f1
+
+[swamp:grass]
+nw 3dd6
+n 3ddf
+ne 3dd5
+e 3ddb
+se 3dd8
+s 03de1
+sw 3dd7
+w 3dde
+ise 3de6
+isw 03de4
+inw 3de5
+ine 3de3
+
+[forest:grass]
+nw 0d9
+n 0d1
+ne 0d2
+e 0cc
+se 0d8
+s 0c8
+sw 0da
+w 0ce
+ise 0d4
+isw 0d7
+inw 0d5
+ine 0d6
+
+
+[mountain:dirt]
+nw 0e1
+n 0dd
+ne 0e2
+e 0de
+se 0e3
+s 0df
+sw 0e0
+w 0dc
+ise 0e4
+isw 0e5
+inw 0e6
+ine 0e7
+
+[sand+dunes<grass]
+nw 03d
+n 03a
+ne 03c
+e 037
+se 03e
+s 039
+sw 03b
+w 038
+ise 033
+isw 034
+inw 035
+ine 036
+_b_a_b_a 01d0
+_a_b_a_b 01d1
+
+[dunes<sand]
+nw 01bc
+ne 01bd
+se 01bf
+sw 01be
+n 01c0
+e 01c5
+s 01c7
+w 01c6
+
+[sand+dunes<water]
+nw 01d
+ne 01e
+sw 01f
+se 020
+w 023 027
+n 021 025
+e 022 026
+s 028 024
+inw 01c
+
+[mountain:grass]
+nw 0231
+n 0239
+ne 0232
+e 023a
+se 0233
+s 023b
+sw 0234
+w 023c
+ise 0235
+isw 0236
+inw 0237
+ine 0238
+
+[dirt:grass]
+nw 07d
+n 08b
+ne 082
+e 087
+se 07e
+s 085
+sw 083
+w 089
+ise 079
+isw 07b
+inw 07a
+ine 07c
 
 [mountain:sand]
 nw 07be
@@ -241,21 +239,22 @@ se 07bd
 s 0129
 sw 012d
 w 0126
-inw 0122
-ine 0123
-ise 0124
-isw 0125
+ise 0122
+isw 0123
+inw 0124
+ine 0125
 
-[dirt:mountain]
-nw 0e4
-n 0df
-ne 0e5
-e 0dc
-se 0e6
-s 0dd
-sw 0e7
-w 0de
-inw 0e1
-ine 0e2
-ise 0e3
-isw 0e0
+
+#[sandstone:grass]
+#nw 046a 0476
+#n 045e .. 0461
+#ne 046b 0473
+#e 0456 .. 0459 0467
+#se 
+#s
+#sw
+#w
+#ise 046e
+#isw
+#ine
+#inw

@@ -58,4 +58,11 @@ Item Definition Scripts
 while reusing dragon is nice, more elaborate scripts could help define and update
 datalists more casually.
 
-Means of transfering 
+Better Mapcreation Brainstorms
+##############################
+    - all fields need 2x2 size
+    - humidity map vs. global heightmap.
+        -> global heightmap defines base height and forms island
+        -> global humidity map defines relative wateryness and defines
+            springs, snow, rivers, eroded materials.
+        

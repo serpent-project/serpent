@@ -4,18 +4,23 @@
 # map tile1 tile2 tile3
 # ignored # tiles in this group are tileable and dont need borders.
 # all numbers are in hex.
+# use .. between two numbers (with spaces) for ranges.
+# use names to insert other lists, however they have to be defined before.
+
+# Subgroups
+[dirt_fine]
+map 071 072 073 074
+
+[dirt_stony]
+map 075 076 077 078
+
+# Groups with transitions.
 
 [mountain]
 map 022c 022d 022e 022f
 
 [dirt]
-map 071 072 073 074 075 076 077 078
-
-[newgrass]
-map 0eef 0ef0 0ef1 0ef2 0ef3 0ef4 0ef5 0ef6 0ef7 0ef8 0ef9 0efa 0efb 0efc 0efd 0efe
-
-[browncoast]
-map 0eef 0ef0 0ef1 0ef2 0ef3 0ef4 0ef5 0ef6 0ef7 0ef8 0ef9 0efa 0efb 0efc 0efd 0efe
+map dirt_fine dirt_stony
 
 [swamp]
 map 03de9 03dea 03deb 03dec
@@ -23,11 +28,55 @@ map 03de9 03dea 03deb 03dec
 [sand]
 map 016 017 018 019
 
-[unknown1]
-map 0a8 0a9 0aa 0ab
-
 [forest]
 map 0c4 0c5 0c6 0c7
 
 [grass]
 map 03 04 05 06
+
+# Groups without transitions.
+[water] # todo
+map 0a8 0a9 0aa 0ab
+flat
+
+[grass_murky]
+map 09c4 .. 0x9eb
+
+[marble_green]
+map 04e7 04e8
+flat
+
+[marble]
+map 04e9 04ea
+flat
+
+[flagstone]
+map 04eb 04ec 04ed 04ee
+
+[cobblestone]
+map 03e9 03ea 03eb 03ec
+
+[cave]
+map 0245 0246 0247 0248 0249
+
+[sandstone]
+map 044a 044b 044c 044d
+
+[snow]
+map 011a 011b 011c 011d
+
+[stars]
+map 01fa 01fb 01fc 01fd 01fe 01ff
+flat
+
+[dunes]
+map 01b9 01ba 01bb
+
+[sand]
+map 016 017 018 019
+
+[sand+dunes]
+map sand dunes
+
+[jungle]
+map 0ac 0ad 0ae 0af

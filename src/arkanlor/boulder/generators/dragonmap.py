@@ -9,8 +9,7 @@ from django.conf import settings
 from arkanlor.dragons.dragon import DragonScripts
 from arkanlor.boulder.generators.continents import Continent
 from arkanlor.boulder.generators.utils import select_tile, select_tile_linear
-
-dragon_scripts = DragonScripts(settings.DRAGON_SCRIPT_DIR)
+from arkanlor.dragons.default import dragon_scripts
 
 class SimpleDragonBiome(Biome):
     """ a simple biome that interpretes everything as dragon map bytes """

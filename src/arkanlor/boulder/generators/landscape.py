@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
+from django.conf import settings
 from arkanlor.boulder.map import Map, MapSync, SHAPE_X, SHAPE_Y, BLOCK_SHAPE
 from arkanlor.misc.geology import MidpointDisplacementNoise, PerlinNoise, \
     CombineNeighbours, Voronoi, WhiteNoise
 from arkanlor.boulder.generators import biomes
 import numpy
 from arkanlor.boulder.generators.continents import ContinentManager
-from arkanlor.boulder.generators.dragonmap import dragon_scripts
 from arkanlor.dragons.dragon import ALL_RUNLEVELS
+from arkanlor.dragons.default import quanum, dragon_scripts
+
 
 class BiomeMapSync(MapSync):
     def load_block(self, mapblock):
@@ -60,6 +62,7 @@ class BiomeMap(Map):
         if not block.processed:
             self.get_all_neighbours(block, wake_up=True)
             if not block.protected:
-                dragon_scripts.apply(block, levels=ALL_RUNLEVELS)
+                quanum.apply(block, levels=ALL_RUNLEVELS)
+                #dragon_scripts.apply(block, levels=ALL_RUNLEVELS)
 
             block.processed = True

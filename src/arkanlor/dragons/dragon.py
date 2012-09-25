@@ -578,7 +578,7 @@ if __name__ == '__main__':
 
     # defining root for our python modules
     THIS_DIR = os.path.abspath(os.path.dirname(os.path.join(os.getcwd(), __file__)))
-    DRAGON_SCRIPT_DIR = os.path.abspath(os.path.join(THIS_DIR, '../../scripts/uodev/'))
+    DRAGON_SCRIPT_DIR = os.path.abspath(os.path.join(THIS_DIR, '../../../scripts/uodev/'))
     dragon = DragonScripts(DRAGON_SCRIPT_DIR)
     print dragon.groups.printout()
     #for key in dragon.files.keys():
