@@ -13,7 +13,7 @@ class ServedClient:
         self._protocol = protocol
         self._engines = []
         Ping(self)
-        #LogEngine(self)
+        LogEngine(self)
         Login(self)
 
     def add_engine(self, engine):

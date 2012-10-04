@@ -71,6 +71,10 @@ INSTALLED_APPS = (
     'arkanlor.boulder',
 )
 
+LOGIN_SERVERS = [ {'name': 'Arkanlor',
+                   },
+                 ]
+
 LOGIN_POINTS = {
             'default': {'x': 390,
                         'y': 3770,

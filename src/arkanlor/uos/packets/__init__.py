@@ -10,7 +10,7 @@ from arkanlor.uos.packets.login import \
     AccountLogin, CharacterList, ClientSpy, ClientVersion, \
     CreateCharacter, Features, GameLogin, LoginCharacter, \
     LoginComplete, LoginConfirm, LoginDenied, SelectServer, \
-    ServerList
+    ServerList, ClientNewVersion
 # for now lets be short.
 from arkanlor.uos.packets.player import *
 from arkanlor.uos.packets.talk import *
@@ -28,6 +28,7 @@ server_parsers = packet_list(
  PingMessage,
  GetPlayerStatus,
  ClientVersion,
+ ClientNewVersion,
  SingleClick,
  DoubleClick,
  GeneralInformation,

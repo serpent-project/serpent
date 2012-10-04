@@ -92,10 +92,15 @@ class UOS(Protocol):
                 self.transport.write('\xff\x00\r%sx00\xa7\x000\x00\xa7\x003\x000' % message)
                 self.transport.loseConnection()
                 return
-            # go on.
-            print "Client connects, encryption-key: %s" % ('-'.join([hex(ord(i)) for i in encryption]))
-            data = data[4:]
-            self.initialized = True
+            #### PASSED! ####
+            elif len(encryption) == 4 and encryption[0] == chr(0xef):
+                # new way: client new version.
+                self.initialized = True
+            else:
+                # go on. old way.
+                print "Client connects, encryption-key: %s" % ('-'.join([hex(ord(i)) for i in encryption]))
+                data = data[4:]
+                self.initialized = True
         self._input += data
         while True:
             data = packet_reader.read_from_buffer(self._input)

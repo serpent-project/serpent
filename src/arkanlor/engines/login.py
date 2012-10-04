@@ -21,11 +21,17 @@ FEATURES_ML = 0x80
 
 FEATURES_ARKANLOR = FEATURES_T2A + FEATURES_RENAISSANCE + FEATURES_3DDAWN + FEATURES_SE + FEATURES_ML
 
+CLIENT_DIALECT_CLASSIC = 1 # the classic protocol. incapable of multiitems.
+CLIENT_DIALECT_IRIS = 2
+CLIENT_DIALECT_NEW = 3 # sa and above, using clientnewversion.
+CLIENT_DIALECT_FLUORESCENCE = 4
+
 class Login(Engine):
     def __init__(self, controller):
         Engine.__init__(self, controller)
-        self.servers = [ {'name': 'Weltenfall'}, {'name': 'Local'}, {'name': 'And another'}]
+        self.servers = settings.LOGIN_SERVERS
         self.account = None
+        self.client_dialect = CLIENT_DIALECT_CLASSIC
 
     def send_character_list(self, account):
         characters = PlayerMobile.objects.filter(owner=self.account)
@@ -67,7 +73,10 @@ class Login(Engine):
                 # > redirect.0x8c
                 # < postlogin
                 # > features 0xb9
-                self._ctrl.send(p.Features({'bitflag':FEATURES_ARKANLOR}))
+
+                # only for classic client, iris:
+                if self.client_dialect in [CLIENT_DIALECT_CLASSIC, CLIENT_DIALECT_IRIS]:
+                    self._ctrl.send(p.Features({'bitflag':FEATURES_ARKANLOR}))
                 # > charlist 0xa9
                 # < select char
                 self.send_character_list(self.account)
@@ -76,8 +85,12 @@ class Login(Engine):
         #elif isinstance(packet, p.PlayCharacter):
         #    pass #(should be followed by clientversion)
         #elif isinstance(packet, p.ClientVersion):
-        #    #??? 
-        elif isinstance(packet, p.GameLogin):
+        #    #???
+        elif isinstance(packet, p.ClientNewVersion):
+            # save version information?
+            # set client dialect to 7 or up.
+            self.client_dialect = CLIENT_DIALECT_NEW
+        elif isinstance(packet, p.GameLogin):# or isinstance(packet, p.ClientNewVersion):
             if self.account:
                 self._ctrl.send(p.ServerList({'servers': self.servers }))
             else:

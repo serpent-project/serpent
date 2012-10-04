@@ -68,6 +68,23 @@ class ClientVersion(Packet):
     def __unicode__(self):
         return u'Client Version %s' % (self.values.get('version', None))
 
+class ClientNewVersion(Packet):
+    __slots__ = Packet.__slots__
+    p_id = 0xef
+    p_length = 21
+    p_type = P_CLIENT
+    _datagram = [('ip', UINT),
+                 ('version_major', UINT),
+                 ('version_minor', UINT),
+                 ('version_revision', UINT),
+                 ('version_build', UINT),
+                 ]
+    def __unicode__(self):
+        try:
+            return u'Client Version (new) %(version_major)s.%(version_minor)s.%(version_revision)s.%(version_build)s at ip %(ip)s' % self.values
+        except:
+            return u'Client Version (new)'
+
 class SelectServer(Packet):
     __slots__ = Packet.__slots__
     p_id = 0xa0
