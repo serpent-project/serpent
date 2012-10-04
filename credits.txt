@@ -1,0 +1,7 @@
+Credits and Links:
+
+    * Ultima Online: http://www.uo.com/
+    * Iris2: http://www.iris2.de/
+    * CentrED: http://redmine.aksdb.de/projects/centred/wiki/
+    * Mudpie: http://code.google.com/p/mudpie/
+    

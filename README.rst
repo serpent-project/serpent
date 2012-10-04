@@ -3,13 +3,14 @@ SERPENT PROJECT
 
 The goal is to implement a python scriptset for editing isometric maps
 
-Using the Ultima Online protocol to test against IRIS2, an open source
-lugre scripted ogre client for Ultima Online.
+Using the Ultima Online protocol to test against free clients like iris2
 
 The project consists of a lot of legacy code and the arkanlor test server
 environment
 
 This Project is in its alpha stages.
+
+Arkanlor has an own information page on http://www.weltenfall.net/arkanlor/
 
 Main goals are:
     * Massive Multiplayer Online Map Editing in iso2.5
@@ -18,14 +19,14 @@ Main goals are:
     
     * eventually some server emulation
 
-Project Code Description:
-    * arkanlor - Server environment written in twisted
+Project Code Description (code located in src/):
+    * arkanlor - Server environment written in twisted, later to be redesigned as library.
     
-    * arkanlor.boulder - Gamestate management, designed as Django App
+    * arkanlor.boulder - Gamestate management, designed as Django App (maybe alchemy later)
     
     * arkanlor.uos - Ultima Online Server Protocol for twisted
     
-    * arkanlor.ced - CentrED Protocol (not started yet) 
+    * arkanlor.ced - CentrED Protocol
     
     * concept - Playground for experimentation with OpenGL rendering
         
@@ -33,4 +34,19 @@ Project Code Description:
     
     * uolib - if I have time to remodel uolib into a more organized format.
     
-    * glue - the GL using editor.
+    * glue - the GL using editor. not started yet. probably will fall out.
+
+Other useful resources:
+    * arkanlor.dagrm - abstract packet design mechanism.
+    
+    * arkanlor.dragons - "dragon" like tile interpolation techniques.
+         -> dragon: reads dragon scripts
+         -> quanum: reads custom quanum scripts
+         -> caleb: transfers calebmap scripts to quanum scripts.
+    
+    * uolib1.scp - abstract parser vor sphere script files. (very old)
+    
+    * arkanlor.misc.geology - slightly modified geology class from mudpie
+
+Links:
+    See credits.txt
